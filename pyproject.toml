@@ -19,7 +19,7 @@ classifiers = [
 dependencies = []
 
 [dependency-groups]
-dev = ["ruff>=0.11"]
+dev = ["pytest>=8.3", "ruff>=0.11"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pyopendrive"]
@@ -34,6 +34,9 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.uv]
 default-groups = ["dev"]

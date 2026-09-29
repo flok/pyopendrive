@@ -75,3 +75,10 @@ revision only; patch releases cannot be inferred from it.
 project commands, and Ruff lint/format rules. Configuration in that file is
 authoritative; this document describes architectural boundaries rather than
 duplicating every tool option.
+
+Integration tests use the same fetch-then-test command locally and in CI:
+`uv run python tests/fetch_testdata.py && uv run pytest`. The fetch step verifies
+and extracts an external ASAM example corpus, reusing a valid local cache;
+downloaded inputs remain outside version control. Pytest discovery is configured
+in `pyproject.toml`, while provenance and licensing cautions are documented in
+`tests/README.md`.
