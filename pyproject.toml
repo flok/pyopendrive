@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyopendrive"
+version = "0.1.0"
+description = "A Python library for reading ASAM OpenDRIVE road network files."
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = []
+
+[dependency-groups]
+dev = ["ruff>=0.11"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyopendrive"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.uv]
+default-groups = ["dev"]
