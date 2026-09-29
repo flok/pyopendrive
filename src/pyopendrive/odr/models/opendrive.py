@@ -1,10 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
-from typing import IO
-
-type OpenDriveSource = str | Path | IO[bytes] | IO[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,10 +32,3 @@ class OpenDriveMap:
     format_version: OpenDriveVersion
     header: Header
     roads: tuple[Road, ...]
-
-    @classmethod
-    def load(cls, source: OpenDriveSource) -> OpenDriveMap:
-        """Load an OpenDRIVE XML file from a path or open text/binary stream."""
-        from pyopendrive.odr.parser.xml import parse
-
-        return parse(source)

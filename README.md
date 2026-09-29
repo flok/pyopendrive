@@ -12,22 +12,22 @@ validate documents against the ASAM XSD schemas.
 ## Usage
 
 ```python
-from pyopendrive import OpenDriveMap
+from pyopendrive import OpenDrive
 
-road_network = OpenDriveMap.load("map.xodr")
+road_network = OpenDrive.load("map.xodr")
 print(road_network.format_version)
 for road in road_network.roads:
     print(road.id, road.length)
 ```
 
-`OpenDriveMap` is the public entry point. XML parsing stays internal; the
-returned object exposes the parsed header, format version, and roads.
+`OpenDrive` is the public loading entry point. `OpenDriveMap` and the other
+model classes contain parsed data only; XML parsing stays internal.
 
 ## Package layout
 
 - `pyopendrive/odr/models/` contains the public domain objects.
 - `pyopendrive/odr/parser/` contains the XML-to-model conversion and parse errors.
-- `pyopendrive` exposes the public map class and model types directly.
+- `pyopendrive` exposes the loading facade and model types directly.
 
 ## Development
 
