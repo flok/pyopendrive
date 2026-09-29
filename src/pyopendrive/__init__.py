@@ -1,6 +1,5 @@
 """Python interface to ASAM OpenDRIVE."""
 
-from pyopendrive.odr.api import OpenDrive
 from pyopendrive.odr import (
     Header,
     OpenDriveMap,
@@ -8,6 +7,7 @@ from pyopendrive.odr import (
     OpenDriveVersion,
     Road,
 )
+from pyopendrive.odr.api import OpenDrive
 
 __all__ = [
     "Header",
