@@ -1,10 +1,9 @@
 # PyOpenDrive roadmap
 
 PyOpenDrive reads ASAM OpenDRIVE XML into typed Python objects. The compatibility
-target is OpenDRIVE 1.4.0–1.9.0; the feature-by-feature status and version
-caveats are maintained in [the compatibility matrix](docs/compatibility.md).
-This roadmap reflects the current implementation and the project's architecture
-documented in [ARCHITECTURE.md](ARCHITECTURE.md).
+target is OpenDRIVE 1.4.0–1.9.0. This roadmap reflects the current
+implementation and the project's architecture documented in
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Current implementation
 
@@ -19,7 +18,7 @@ documented in [ARCHITECTURE.md](ARCHITECTURE.md).
   `OpenDriveParseError`.
 - Road geometry, profiles, lanes, junctions, signals, objects, supplementary
   elements, validation, and older-version-specific behavior remain planned;
-  see the compatibility matrix for exact coverage.
+  the compatibility target and major feature groups are summarized below.
 - The project targets Python 3.12+, has no runtime dependencies, and uses `uv`
   and Ruff.
 
@@ -27,7 +26,7 @@ documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### M0 — Scope and evidence
 
-1. [Define the OpenDRIVE version and feature support matrix](https://github.com/flok/pyopendrive/issues/1) — **complete**; see [docs/compatibility.md](docs/compatibility.md).
+1. [Define the OpenDRIVE version and feature support matrix](https://github.com/flok/pyopendrive/issues/1) — **complete**; supported revisions and feature groups are summarized in this roadmap.
 2. [Build a versioned example and fixture corpus](https://github.com/flok/pyopendrive/issues/2) — planned.
 
 ### M1 — Parser foundation
