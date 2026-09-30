@@ -5,17 +5,11 @@ from typing import IO
 from xml.etree import ElementTree
 
 from pyopendrive.odr.models import (
-    DefaultRegulations,
     Header,
-    License,
-    Offset,
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveVersion,
-    RegulationSemantic,
     Road,
-    RoadRegulation,
-    SignalRegulation,
 )
 
 type XmlSource = str | Path | IO[bytes] | IO[str]
@@ -55,7 +49,12 @@ def parse(source: XmlSource) -> OpenDriveMap:
         major=_required_int(header_element, "revMajor"),
         minor=_required_int(header_element, "revMinor"),
     )
-    header = _parse_header(header_element)
+    header = Header(
+        name=header_element.get("name"),
+        version=header_element.get("version"),
+        date=header_element.get("date"),
+        vendor=header_element.get("vendor"),
+    )
     road_elements = [element for element in root if _local_name(element.tag) == "road"]
     roads = tuple(_parse_road(element) for element in road_elements)
     diagnostics = _collect_diagnostics(root, header_element, road_elements)
@@ -87,148 +86,6 @@ def _parse_road(element: ElementTree.Element) -> Road:
     )
 
 
-def _parse_header(element: ElementTree.Element) -> Header:
-    children = {_local_name(child.tag): child for child in element}
-    license_element = children.get("license")
-    license_info = None
-    if license_element is not None:
-        name = license_element.get("name")
-        if name is None:
-            raise OpenDriveParseError(
-                "License has a missing required 'name' attribute.",
-                element="/OpenDRIVE/header/license",
-            )
-        license_info = License(
-            name=name,
-            resource=license_element.get("resource"),
-            spdxid=license_element.get("spdxid"),
-            text=license_element.get("text"),
-        )
-
-    offset_element = children.get("offset")
-    offset = _parse_offset(offset_element) if offset_element is not None else None
-    regulations_element = children.get("defaultRegulations")
-
-    return Header(
-        name=element.get("name"),
-        version=element.get("version"),
-        date=element.get("date"),
-        vendor=element.get("vendor"),
-        north=_optional_float(element, "north"),
-        south=_optional_float(element, "south"),
-        east=_optional_float(element, "east"),
-        west=_optional_float(element, "west"),
-        geo_reference=(
-            "".join(children["geoReference"].itertext())
-            if "geoReference" in children
-            else None
-        ),
-        offset=offset,
-        license=license_info,
-        default_regulations=(
-            _parse_default_regulations(regulations_element)
-            if regulations_element is not None
-            else None
-        ),
-    )
-
-
-def _parse_offset(element: ElementTree.Element) -> Offset:
-    return Offset(
-        x=_required_float(element, "x", "/OpenDRIVE/header/offset"),
-        y=_required_float(element, "y", "/OpenDRIVE/header/offset"),
-        z=_required_float(element, "z", "/OpenDRIVE/header/offset"),
-        hdg=_required_float(element, "hdg", "/OpenDRIVE/header/offset"),
-    )
-
-
-def _parse_default_regulations(element: ElementTree.Element) -> DefaultRegulations:
-    roads: list[RoadRegulation] = []
-    signals: list[SignalRegulation] = []
-    for child in element:
-        name = _local_name(child.tag)
-        semantics = _parse_regulation_semantics(child)
-        if name == "roadRegulations":
-            roads.append(
-                RoadRegulation(
-                    type=_required_string(
-                        child,
-                        "type",
-                        "/OpenDRIVE/header/defaultRegulations/roadRegulations",
-                    ),
-                    semantics=semantics,
-                )
-            )
-        elif name == "signalRegulations":
-            signals.append(
-                SignalRegulation(
-                    type=_required_string(
-                        child,
-                        "type",
-                        "/OpenDRIVE/header/defaultRegulations/signalRegulations",
-                    ),
-                    subtype=_required_string(
-                        child,
-                        "subtype" if child.get("subtype") is not None else "subType",
-                        "/OpenDRIVE/header/defaultRegulations/signalRegulations",
-                    ),
-                    semantics=semantics,
-                )
-            )
-    return DefaultRegulations(road=tuple(roads), signals=tuple(signals))
-
-
-def _parse_regulation_semantics(
-    element: ElementTree.Element,
-) -> tuple[RegulationSemantic, ...]:
-    semantics: list[RegulationSemantic] = []
-    for container in element:
-        if _local_name(container.tag) != "semantics":
-            continue
-        semantics.extend(
-            RegulationSemantic(
-                name=_local_name(child.tag),
-                attributes=tuple(
-                    (_local_name(key), value) for key, value in child.attrib.items()
-                ),
-            )
-            for child in container
-        )
-    return tuple(semantics)
-
-
-def _required_string(element: ElementTree.Element, attribute: str, path: str) -> str:
-    value = element.get(attribute)
-    if value is None:
-        raise OpenDriveParseError(
-            f"Element has a missing required '{attribute}' attribute.", element=path
-        )
-    return value
-
-
-def _required_float(element: ElementTree.Element, attribute: str, path: str) -> float:
-    try:
-        return float(element.attrib[attribute])
-    except (KeyError, ValueError) as error:
-        raise OpenDriveParseError(
-            f"Element has a missing or invalid '{attribute}' attribute.",
-            element=path,
-        ) from error
-
-
-def _optional_float(element: ElementTree.Element, attribute: str) -> float | None:
-    value = element.get(attribute)
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except ValueError as error:
-        raise OpenDriveParseError(
-            f"Header has an invalid '{attribute}' attribute.",
-            element="/OpenDRIVE/header",
-        ) from error
-
-
 def _required_int(element: ElementTree.Element, attribute: str) -> int:
     try:
         return int(element.attrib[attribute])
@@ -248,22 +105,11 @@ def _collect_diagnostics(
     _unsupported_attributes(root, set(), "/OpenDRIVE", diagnostics)
     _unsupported_attributes(
         header,
-        {
-            "revMajor",
-            "revMinor",
-            "name",
-            "version",
-            "date",
-            "vendor",
-            "north",
-            "south",
-            "east",
-            "west",
-        },
+        {"revMajor", "revMinor", "name", "version", "date", "vendor"},
         "/OpenDRIVE/header",
         diagnostics,
     )
-    _header_child_diagnostics(header, diagnostics)
+    _unsupported_children(header, "/OpenDRIVE/header", diagnostics)
 
     for road in roads:
         path = f"/OpenDRIVE/road[@id='{road.get('id', '?')}']"
@@ -277,57 +123,6 @@ def _collect_diagnostics(
         if name not in {"header", "road"}:
             _unsupported_element(child, f"/OpenDRIVE/{name}", diagnostics)
     return tuple(diagnostics)
-
-
-def _header_child_diagnostics(
-    header: ElementTree.Element, diagnostics: list[OpenDriveDiagnostic]
-) -> None:
-    known_children = {"geoReference", "offset", "license", "defaultRegulations"}
-    for child in header:
-        name = _local_name(child.tag)
-        path = f"/OpenDRIVE/header/{name}"
-        if name not in known_children:
-            _unsupported_element(child, path, diagnostics)
-        elif name == "offset":
-            _unsupported_attributes(child, {"x", "y", "z", "hdg"}, path, diagnostics)
-        elif name == "license":
-            _unsupported_attributes(
-                child, {"name", "resource", "spdxid", "text"}, path, diagnostics
-            )
-        elif name == "defaultRegulations":
-            _default_regulation_diagnostics(child, path, diagnostics)
-
-
-def _default_regulation_diagnostics(
-    element: ElementTree.Element,
-    path: str,
-    diagnostics: list[OpenDriveDiagnostic],
-) -> None:
-    for regulation in element:
-        name = _local_name(regulation.tag)
-        regulation_path = f"{path}/{name}"
-        if name == "roadRegulations":
-            _unsupported_attributes(regulation, {"type"}, regulation_path, diagnostics)
-        elif name == "signalRegulations":
-            _unsupported_attributes(
-                regulation, {"type", "subtype", "subType"}, regulation_path, diagnostics
-            )
-        else:
-            _unsupported_element(regulation, regulation_path, diagnostics)
-            continue
-
-        for container in regulation:
-            container_name = _local_name(container.tag)
-            container_path = f"{regulation_path}/{container_name}"
-            if container_name != "semantics":
-                _unsupported_element(container, container_path, diagnostics)
-                continue
-            for semantic in container:
-                semantic_name = _local_name(semantic.tag)
-                if semantic_name not in {"speed", "priority"}:
-                    _unsupported_element(
-                        semantic, f"{container_path}/{semantic_name}", diagnostics
-                    )
 
 
 def _unsupported_attributes(
@@ -348,6 +143,16 @@ def _unsupported_attributes(
             )
 
 
+def _unsupported_children(
+    element: ElementTree.Element,
+    path: str,
+    diagnostics: list[OpenDriveDiagnostic],
+) -> None:
+    for child in element:
+        name = _local_name(child.tag)
+        _unsupported_element(child, f"{path}/{name}", diagnostics)
+
+
 def _unsupported_element(
     element: ElementTree.Element,
     path: str,
@@ -360,16 +165,6 @@ def _unsupported_element(
             element=path,
         )
     )
-
-
-def _unsupported_children(
-    element: ElementTree.Element,
-    path: str,
-    diagnostics: list[OpenDriveDiagnostic],
-) -> None:
-    for child in element:
-        name = _local_name(child.tag)
-        _unsupported_element(child, f"{path}/{name}", diagnostics)
 
 
 def _local_name(tag: str) -> str:

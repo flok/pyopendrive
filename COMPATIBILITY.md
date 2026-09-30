@@ -44,7 +44,7 @@ claim that every detail has already been implemented.
 
 | Element group | Current parser | Initial target | Notes |
 | --- | --- | --- | --- |
-| Root, format revision, complete header metadata | Supported | Supported | Parses bounds, georeference source text, coordinate offset, license, and 1.8+ default regulations; transforms remain separate. |
+| Root, format revision, common header fields | Partial | Supported | Current parser reads revision, name, version, date, vendor; complete header fields remain planned. |
 | Road identity and basic attributes | Partial | Supported | Current parser reads ID, length, junction reference, and name. |
 | Road links, road types, rules, metadata | Planned | Supported | Parse and preserve specification-defined values. |
 | Plan-view geometry | Planned | Supported | Parse line, arc, spiral, poly3, paramPoly3 and 1.9 curve forms where specified. |
