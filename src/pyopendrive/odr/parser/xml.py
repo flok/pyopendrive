@@ -21,6 +21,7 @@ from pyopendrive.odr.models import (
     RoadType,
     SignalRegulation,
 )
+from pyopendrive.odr.models.geometry import GeometrySegment
 
 type XmlSource = str | Path | IO[bytes] | IO[str]
 
@@ -84,6 +85,16 @@ def _parse_road(element: ElementTree.Element) -> Road:
             element=path,
         ) from error
 
+    plan_view = next(
+        (child for child in element if _local_name(child.tag) == "planView"), None
+    )
+    if plan_view is None:
+        geometries: tuple[GeometrySegment, ...] = ()
+    else:
+        from pyopendrive.odr.parser.geometry import parse_plan_view
+
+        geometries = parse_plan_view(plan_view, road_id)
+
     return Road(
         id=road_id,
         length=length,
@@ -97,6 +108,7 @@ def _parse_road(element: ElementTree.Element) -> Road:
             for child in element
             if _local_name(child.tag) == "type"
         ),
+        plan_view=geometries,
     )
 
 
@@ -409,6 +421,8 @@ def _collect_diagnostics(
                         _unsupported_children(nested, nested_path, diagnostics)
                     else:
                         _unsupported_element(nested, nested_path, diagnostics)
+            elif name == "planView":
+                continue
             else:
                 _unsupported_element(child, f"{path}/{name}", diagnostics)
 

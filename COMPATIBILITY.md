@@ -47,7 +47,7 @@ claim that every detail has already been implemented.
 | Root, format revision, complete header metadata | Supported | Supported | Parses bounds, georeference source text, coordinate offset, license, and 1.8+ default regulations; transforms remain separate. |
 | Road identity and basic attributes | Supported | Supported | Parses ID, length, junction reference, name, and rule; identifiers remain strings. |
 | Road links, road types, rules, metadata | Partial | Supported | Parses ordered type/speed records and predecessor/successor references; extended lane-layer state is tracked with the lane model. |
-| Plan-view geometry | Planned | Supported | Parse line, arc, spiral, poly3, paramPoly3 and 1.9 curve forms where specified. |
+| Plan-view geometry | Supported | Supported | Parses ordered line, arc, spiral, poly3, and paramPoly3 segments while preserving source parameters; curve evaluation remains separate. |
 | Elevation, superelevation, shape, cross-section profiles | Planned | Supported | Parse coefficients/records; evaluating geometry is outside the initial target. |
 | Lanes, lane links, road marks, access, speeds, widths | Planned | Supported | Includes 1.9 permanent/temporary lane layers and cross-layer links. |
 | Junctions, connections, junction groups, controllers | Planned | Supported | Includes common, direct, virtual, and crossing junction types. |
