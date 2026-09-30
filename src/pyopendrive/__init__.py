@@ -11,7 +11,10 @@ from pyopendrive.odr import (
     OpenDriveVersion,
     RegulationSemantic,
     Road,
+    RoadLink,
     RoadRegulation,
+    RoadSpeed,
+    RoadType,
     SignalRegulation,
 )
 from pyopendrive.odr.api import OpenDrive
@@ -27,7 +30,10 @@ __all__ = [
     "OpenDriveParseError",
     "OpenDriveVersion",
     "Road",
+    "RoadLink",
     "RoadRegulation",
+    "RoadSpeed",
+    "RoadType",
     "RegulationSemantic",
     "SignalRegulation",
 ]

@@ -10,10 +10,10 @@ from pyopendrive.odr.models.opendrive import (
     OpenDriveSource,
     OpenDriveVersion,
     RegulationSemantic,
-    Road,
     RoadRegulation,
     SignalRegulation,
 )
+from pyopendrive.odr.models.road import Road, RoadLink, RoadSpeed, RoadType
 
 __all__ = [
     "DefaultRegulations",
@@ -25,7 +25,10 @@ __all__ = [
     "OpenDriveSource",
     "OpenDriveVersion",
     "Road",
+    "RoadLink",
     "RoadRegulation",
+    "RoadSpeed",
+    "RoadType",
     "RegulationSemantic",
     "SignalRegulation",
 ]
