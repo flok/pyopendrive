@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from pyopendrive.odr.models.geometry import GeometrySegment
+from pyopendrive.odr.models.profiles import RoadProfiles
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,3 +41,4 @@ class Road:
     successor: RoadLink | None = None
     types: tuple[RoadType, ...] = ()
     plan_view: tuple[GeometrySegment, ...] = ()
+    profiles: RoadProfiles = RoadProfiles()
