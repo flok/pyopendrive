@@ -1,5 +1,6 @@
 """Internal XML-to-model conversion."""
 
+import math
 from pathlib import Path
 from typing import IO
 from xml.etree import ElementTree
@@ -14,7 +15,10 @@ from pyopendrive.odr.models import (
     OpenDriveVersion,
     RegulationSemantic,
     Road,
+    RoadLink,
     RoadRegulation,
+    RoadSpeed,
+    RoadType,
     SignalRegulation,
 )
 
@@ -68,15 +72,16 @@ def parse(source: XmlSource) -> OpenDriveMap:
 
 
 def _parse_road(element: ElementTree.Element) -> Road:
+    path = f"/OpenDRIVE/road[@id='{element.get('id', '?')}']"
     try:
         road_id = element.attrib["id"]
-        length = float(element.attrib["length"])
+        length = _float_attribute(element, "length", path)
         junction = element.attrib["junction"]
     except (KeyError, ValueError) as error:
         road_id = element.get("id", "?")
         raise OpenDriveParseError(
             f"Road has a missing or invalid attribute: {error}",
-            element=f"/OpenDRIVE/road[@id='{road_id}']",
+            element=path,
         ) from error
 
     return Road(
@@ -84,7 +89,105 @@ def _parse_road(element: ElementTree.Element) -> Road:
         length=length,
         junction=junction,
         name=element.get("name"),
+        rule=element.get("rule"),
+        predecessor=_parse_road_link(element, "predecessor", path),
+        successor=_parse_road_link(element, "successor", path),
+        types=tuple(
+            _parse_road_type(child, path)
+            for child in element
+            if _local_name(child.tag) == "type"
+        ),
     )
+
+
+def _parse_road_link(
+    road: ElementTree.Element, direction: str, path: str
+) -> RoadLink | None:
+    container = next(
+        (child for child in road if _local_name(child.tag) == "link"), None
+    )
+    if container is None:
+        return None
+    element = next(
+        (child for child in container if _local_name(child.tag) == direction), None
+    )
+    if element is None:
+        return None
+    link_path = f"{path}/link/{direction}"
+    try:
+        element_type = element.attrib["elementType"]
+        element_id = element.attrib["elementId"]
+        element_s = (
+            _float_attribute(element, "elementS", link_path)
+            if "elementS" in element.attrib
+            else None
+        )
+    except (KeyError, ValueError) as error:
+        raise OpenDriveParseError(
+            f"Road link has a missing or invalid attribute: {error}",
+            element=link_path,
+        ) from error
+    return RoadLink(
+        element_type=element_type,
+        element_id=element_id,
+        contact_point=element.get("contactPoint"),
+        element_s=element_s,
+        element_dir=element.get("elementDir"),
+    )
+
+
+def _parse_road_type(element: ElementTree.Element, road_path: str) -> RoadType:
+    path = f"{road_path}/type"
+    try:
+        s = _float_attribute(element, "s", path)
+        road_type = element.attrib["type"]
+    except (KeyError, ValueError) as error:
+        raise OpenDriveParseError(
+            f"Road type has a missing or invalid attribute: {error}", element=path
+        ) from error
+    speed_element = next(
+        (child for child in element if _local_name(child.tag) == "speed"), None
+    )
+    speed = None
+    if speed_element is not None:
+        speed_path = f"{path}/speed"
+        maximum = speed_element.get("max")
+        if maximum is None:
+            raise OpenDriveParseError(
+                "Road speed is missing required attribute 'max'.", element=speed_path
+            )
+        if maximum in {"no limit", "undefined"}:
+            value: float | str = maximum
+        else:
+            try:
+                value = float(maximum)
+                if not math.isfinite(value):
+                    raise ValueError("speed must be finite")
+            except ValueError as error:
+                raise OpenDriveParseError(
+                    f"Road speed has invalid 'max' attribute: {error}",
+                    element=speed_path,
+                ) from error
+        speed = RoadSpeed(value=value, unit=speed_element.get("unit"))
+    return RoadType(
+        s=s,
+        type=road_type,
+        country=element.get("country"),
+        source=element.get("source"),
+        speed=speed,
+    )
+
+
+def _float_attribute(element: ElementTree.Element, attribute: str, path: str) -> float:
+    try:
+        value = float(element.attrib[attribute])
+        if not math.isfinite(value):
+            raise ValueError("value must be finite")
+        return value
+    except (KeyError, ValueError) as error:
+        raise OpenDriveParseError(
+            f"Missing or invalid '{attribute}' attribute: {error}", element=path
+        ) from error
 
 
 def _parse_header(element: ElementTree.Element) -> Header:
@@ -268,9 +371,46 @@ def _collect_diagnostics(
     for road in roads:
         path = f"/OpenDRIVE/road[@id='{road.get('id', '?')}']"
         _unsupported_attributes(
-            road, {"id", "length", "junction", "name"}, path, diagnostics
+            road, {"id", "length", "junction", "name", "rule"}, path, diagnostics
         )
-        _unsupported_children(road, path, diagnostics)
+        for child in road:
+            name = _local_name(child.tag)
+            if name == "link":
+                _unsupported_attributes(child, set(), f"{path}/link", diagnostics)
+                for link in child:
+                    link_path = f"{path}/link/{_local_name(link.tag)}"
+                    _unsupported_attributes(
+                        link,
+                        {
+                            "elementType",
+                            "elementId",
+                            "contactPoint",
+                            "elementS",
+                            "elementDir",
+                        },
+                        link_path,
+                        diagnostics,
+                    )
+                    _unsupported_children(link, link_path, diagnostics)
+            elif name == "type":
+                _unsupported_attributes(
+                    child,
+                    {"s", "type", "country", "source"},
+                    f"{path}/type",
+                    diagnostics,
+                )
+                for nested in child:
+                    nested_name = _local_name(nested.tag)
+                    nested_path = f"{path}/type/{nested_name}"
+                    if nested_name == "speed":
+                        _unsupported_attributes(
+                            nested, {"max", "unit"}, nested_path, diagnostics
+                        )
+                        _unsupported_children(nested, nested_path, diagnostics)
+                    else:
+                        _unsupported_element(nested, nested_path, diagnostics)
+            else:
+                _unsupported_element(child, f"{path}/{name}", diagnostics)
 
     for child in root:
         name = _local_name(child.tag)

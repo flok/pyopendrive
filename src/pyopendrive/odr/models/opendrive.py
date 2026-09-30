@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from os import PathLike
 from typing import IO
 
+from pyopendrive.odr.models.road import Road
+
 type OpenDriveSource = str | PathLike[str] | IO[bytes] | IO[str]
 
 
@@ -68,14 +70,6 @@ class SignalRegulation:
 class DefaultRegulations:
     road: tuple[RoadRegulation, ...] = ()
     signals: tuple[SignalRegulation, ...] = ()
-
-
-@dataclass(frozen=True, slots=True)
-class Road:
-    id: str
-    length: float
-    junction: str
-    name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

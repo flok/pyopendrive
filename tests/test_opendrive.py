@@ -184,7 +184,7 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
         """\
 <OpenDRIVE extension="value">
   <header revMajor="1" revMinor="9" unexpected="5"><geoReference/></header>
-  <road id="1" length="12.5" junction="-1" rule="RHT"><planView/></road>
+  <road id="1" length="12.5" junction="-1"><planView/></road>
   <controller id="7"/>
 </OpenDRIVE>
 """
@@ -204,11 +204,6 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
             "/OpenDRIVE/header",
         ),
         OpenDriveDiagnostic(
-            "unsupported-attribute",
-            "Attribute 'rule' is not currently parsed.",
-            "/OpenDRIVE/road[@id='1']",
-        ),
-        OpenDriveDiagnostic(
             "unsupported-element",
             "Element 'planView' is not currently parsed.",
             "/OpenDRIVE/road[@id='1']/planView",
@@ -219,3 +214,50 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
             "/OpenDRIVE/controller",
         ),
     )
+
+
+def test_parses_road_types_and_links() -> None:
+    road_map = OpenDriveMap.load(
+        StringIO(
+            """\
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9"/>
+  <road id="01" name="Main" length="12.5" junction="-1" rule="RHT">
+    <link>
+      <predecessor elementType="junction" elementId="02"/>
+      <successor elementType="road" elementId="3" contactPoint="start"/>
+    </link>
+    <type s="0" type="town" country="OpenDRIVE">
+      <speed max="13.9" unit="m/s"/>
+    </type>
+    <type s="8" type="rural"><speed max="no limit"/></type>
+  </road>
+</OpenDRIVE>
+"""
+        )
+    )
+
+    road = road_map.roads[0]
+    assert road.id == "01"
+    assert road.rule == "RHT"
+    assert road.predecessor.element_id == "02"
+    assert road.predecessor.contact_point is None
+    assert road.successor.element_id == "3"
+    assert road.successor.contact_point == "start"
+    assert road.types[0].speed.value == 13.9
+    assert road.types[0].speed.unit == "m/s"
+    assert road.types[1].speed.value == "no limit"
+    assert road_map.diagnostics == ()
+
+
+def test_invalid_road_type_reports_context() -> None:
+    with pytest.raises(OpenDriveParseError, match="Road type") as caught:
+        OpenDriveMap.load(
+            StringIO(
+                '<OpenDRIVE><header revMajor="1" revMinor="9"/>'
+                '<road id="1" length="1" junction="-1">'
+                '<type s="bad" type="town"/></road></OpenDRIVE>'
+            )
+        )
+
+    assert caught.value.element == "/OpenDRIVE/road[@id='1']/type"
