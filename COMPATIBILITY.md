@@ -49,7 +49,7 @@ claim that every detail has already been implemented.
 | Road links, road types, rules, metadata | Partial | Supported | Parses ordered type/speed records and predecessor/successor references; extended lane-layer state is tracked with the lane model. |
 | Plan-view geometry | Supported | Supported | Parses ordered line, arc, spiral, poly3, and paramPoly3 segments while preserving source parameters; curve evaluation remains separate. |
 | Elevation, superelevation, shape, cross-section profiles | Supported | Supported | Parses revision-aware coefficient records and cross-section surfaces; evaluating geometry is outside the initial target. |
-| Lanes, lane links, road marks, access, speeds, widths | Planned | Supported | Includes 1.9 permanent/temporary lane layers and cross-layer links. |
+| Lanes, lane links, road marks, access, speeds, widths | Partial | Supported | Parses layers, sections, groups, links, widths/borders, road marks, and supported properties; unknown lane extensions still need diagnostics. |
 | Junctions, connections, junction groups, controllers | Planned | Supported | Includes common, direct, virtual, and crossing junction types. |
 | Signals and lane validity | Planned | Supported | Includes harmonized signal categories and temporary/invalidated state. |
 | Road objects and object outlines/markings | Planned | Supported | Includes 1.9 smooth outlines and marking reference changes. |
