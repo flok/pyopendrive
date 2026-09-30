@@ -20,7 +20,7 @@ src/pyopendrive/
 ├── __init__.py             # Stable public imports
 └── odr/
     ├── __init__.py         # OpenDRIVE types and parser error exports
-    ├── api.py              # Public loading facade
+    ├── api.py              # Compatibility loading facade
     ├── models/
     │   ├── __init__.py
     │   └── opendrive.py    # Map, header, road, and format-revision models
@@ -33,23 +33,26 @@ The `odr` directory is an internal implementation package. Users import
 supported names from the `pyopendrive` package root:
 
 ```python
-from pyopendrive import OpenDrive
+from pyopendrive import OpenDriveMap
 
-road_map = OpenDrive.load("map.xodr")
+road_map = OpenDriveMap.load("map.xodr")
 ```
 
 ## Responsibilities and data flow
 
-1. `OpenDrive.load(source)` is the public loading method. It delegates parsing
-   to `odr.parser.xml` and returns an `OpenDriveMap` model.
+1. `OpenDriveMap.load(source)` is the public loading method for paths and
+   caller-owned text or binary streams. It delegates parsing to
+   `odr.parser.xml`; `OpenDrive.load` remains a compatibility alias.
 2. The XML parser uses the Python standard library's `xml.etree.ElementTree`
    and converts the document into model values.
 3. `OpenDriveMap`, `OpenDriveVersion`, `Header`, and `Road` are immutable,
    slotted dataclasses. Collections exposed by the map are tuples.
 4. `OpenDriveParseError` represents malformed XML or required OpenDRIVE
-   structure/attributes that cannot be parsed.
+   structure/attributes that cannot be parsed and exposes element context.
 5. `pyopendrive.__init__` re-exports the supported public types so internal
    module paths can change without changing normal user imports.
+6. Recoverable unsupported elements and attributes produce immutable
+   `OpenDriveDiagnostic` values on the map rather than being silently ignored.
 
 The parser currently reads `revMajor`/`revMinor`, common header metadata, and
 road IDs, lengths, junction references, and names. It handles XML namespace
@@ -59,8 +62,11 @@ revision only; patch releases cannot be inferred from it.
 ## Design boundaries
 
 - Models contain parsed domain data and should not depend on XML element types.
-- Parsing and parse diagnostics belong in `odr/parser/`; `odr/api.py` is the
-  thin public loading facade. Models contain data and no loading behavior.
+  The map's loading classmethod imports the parser lazily, preserving that
+  dependency boundary while providing the public entry point.
+- Parsing and parse-diagnostic collection belong in `odr/parser/`; the map
+  exposes only a thin loading entry point and `odr/api.py` retains its legacy
+  facade. Domain models contain no XML conversion logic.
 - ASAM structural/version rules belong in the compatibility matrix and
   version-aware parser behavior. Keep optional validation separate from the
   default loading path.

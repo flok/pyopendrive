@@ -1,11 +1,6 @@
 """Public loading entry point for OpenDRIVE documents."""
 
-from pathlib import Path
-from typing import IO
-
-from pyopendrive.odr.models import OpenDriveMap
-
-type OpenDriveSource = str | Path | IO[bytes] | IO[str]
+from pyopendrive.odr.models import OpenDriveMap, OpenDriveSource
 
 
 class OpenDrive:
@@ -13,7 +8,5 @@ class OpenDrive:
 
     @staticmethod
     def load(source: OpenDriveSource) -> OpenDriveMap:
-        """Load an OpenDRIVE XML file from a path or open text/binary stream."""
-        from pyopendrive.odr.parser.xml import parse
-
-        return parse(source)
+        """Load a map; retained as an alias for :meth:`OpenDriveMap.load`."""
+        return OpenDriveMap.load(source)

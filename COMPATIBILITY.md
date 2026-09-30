@@ -8,7 +8,9 @@ are separate capabilities.
 The project targets Python 3.12 and newer, uses `uv` for project and build
 management, and Ruff for linting/formatting. The public loading API is
 `pyopendrive.OpenDriveMap.load(source)`; it returns typed models without
-rewriting the source document.
+rewriting the source document. A successful load is not a claim of complete
+XSD or semantic validation; currently unsupported content is identified in
+the returned map's structured diagnostics.
 
 ## Version scope
 
