@@ -10,6 +10,10 @@
   revisions, feature coverage, and compatibility limits.
 - Target Python 3.12 or newer. Use `uv` for project and build commands and Ruff
   for linting and formatting; read `pyproject.toml` for configured commands.
+- Publish releases by updating the project version, then pushing a matching
+  `v<version>` tag. `.github/workflows/release.yml` tests, builds the wheel,
+  publishes it to PyPI through Trusted Publishing, and creates a GitHub release
+  with generated notes. Push the tag directly; do not pre-create the release.
 - Keep ASAM-derived requirements traceable to the relevant specification
   revision. Mark unverified version details as unknown until checked against
   the official specification, XSD, or UML model.
