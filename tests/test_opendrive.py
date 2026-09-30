@@ -5,11 +5,17 @@ from io import BytesIO, StringIO
 import pytest
 
 from pyopendrive import (
+    DefaultRegulations,
+    License,
+    Offset,
     OpenDrive,
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveParseError,
     OpenDriveVersion,
+    RegulationSemantic,
+    RoadRegulation,
+    SignalRegulation,
 )
 
 MINIMAL_MAP = b"""\
@@ -31,6 +37,100 @@ def test_load_minimal_map() -> None:
     assert road_map.roads[0].name == "Example road"
     assert road_map.diagnostics == ()
     assert not source.closed
+
+
+# Fixtures cover header constructs described in ASAM OpenDRIVE sections 6.4 and 8.5.
+@pytest.mark.parametrize("revision", [(1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9)])
+def test_header_metadata_is_separate_from_format_revision(
+    revision: tuple[int, int],
+) -> None:
+    major, minor = revision
+    source = StringIO(
+        f'<OpenDRIVE><header revMajor="{major}" revMinor="{minor}" '
+        'name="Network" north="20" south="-20" east="10" west="-10">'
+        "<geoReference><![CDATA[+proj=utm +zone=32]]></geoReference>"
+        '<offset x="1.5" y="-2" z="3" hdg="0.25"/></header></OpenDRIVE>'
+    )
+
+    road_map = OpenDriveMap.load(source)
+
+    assert road_map.format_version == OpenDriveVersion(major, minor)
+    assert road_map.header.north == 20
+    assert road_map.header.south == -20
+    assert road_map.header.east == 10
+    assert road_map.header.west == -10
+    assert road_map.header.geo_reference == "+proj=utm +zone=32"
+    assert road_map.header.offset == Offset(1.5, -2, 3, 0.25)
+    assert road_map.diagnostics == ()
+
+
+@pytest.mark.parametrize("minor", [8, 9])
+def test_header_license_and_default_regulations(minor: int) -> None:
+    source = StringIO(
+        f'<OpenDRIVE><header revMajor="1" revMinor="{minor}">'
+        '<license name="CC0" resource="https://example.test/license" '
+        'spdxid="CC0-1.0" text="Public domain"/>'
+        '<defaultRegulations><roadRegulations type="rural"><semantics>'
+        '<speed type="maximum" value="80" unit="km/h"/>'
+        '</semantics></roadRegulations><signalRegulations type="stop" '
+        'subType="-1"><semantics><priority type="stop"/></semantics>'
+        "</signalRegulations></defaultRegulations></header></OpenDRIVE>"
+    )
+
+    header = OpenDriveMap.load(source).header
+
+    assert header.license == License(
+        "CC0", "https://example.test/license", "CC0-1.0", "Public domain"
+    )
+    assert header.default_regulations == DefaultRegulations(
+        road=(
+            RoadRegulation(
+                "rural",
+                (
+                    RegulationSemantic(
+                        "speed",
+                        (("type", "maximum"), ("value", "80"), ("unit", "km/h")),
+                    ),
+                ),
+            ),
+        ),
+        signals=(
+            SignalRegulation(
+                "stop", "-1", (RegulationSemantic("priority", (("type", "stop"),)),)
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("header_children", "attribute", "element"),
+    [
+        ('<offset x="1" y="2" z="3"/>', "hdg", "/OpenDRIVE/header/offset"),
+        ('<offset x="bad" y="2" z="3" hdg="0"/>', "x", "/OpenDRIVE/header/offset"),
+        (
+            '<license resource="https://example.test"/>',
+            "name",
+            "/OpenDRIVE/header/license",
+        ),
+        (
+            "<defaultRegulations><roadRegulations/></defaultRegulations>",
+            "type",
+            "/OpenDRIVE/header/defaultRegulations/roadRegulations",
+        ),
+    ],
+)
+def test_invalid_header_metadata_reports_element_and_attribute(
+    header_children: str, attribute: str, element: str
+) -> None:
+    xml = (
+        '<OpenDRIVE><header revMajor="1" revMinor="9">'
+        f"{header_children}</header></OpenDRIVE>"
+    )
+
+    with pytest.raises(OpenDriveParseError, match=attribute) as caught:
+        OpenDriveMap.load(StringIO(xml))
+
+    assert caught.value.element == element
 
 
 def test_load_path_and_binary_stream(tmp_path) -> None:
@@ -83,7 +183,7 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
     source = StringIO(
         """\
 <OpenDRIVE extension="value">
-  <header revMajor="1" revMinor="9" north="5"><geoReference/></header>
+  <header revMajor="1" revMinor="9" unexpected="5"><geoReference/></header>
   <road id="1" length="12.5" junction="-1" rule="RHT"><planView/></road>
   <controller id="7"/>
 </OpenDRIVE>
@@ -100,13 +200,8 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
         ),
         OpenDriveDiagnostic(
             "unsupported-attribute",
-            "Attribute 'north' is not currently parsed.",
+            "Attribute 'unexpected' is not currently parsed.",
             "/OpenDRIVE/header",
-        ),
-        OpenDriveDiagnostic(
-            "unsupported-element",
-            "Element 'geoReference' is not currently parsed.",
-            "/OpenDRIVE/header/geoReference",
         ),
         OpenDriveDiagnostic(
             "unsupported-attribute",
