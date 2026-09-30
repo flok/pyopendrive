@@ -19,6 +19,55 @@ class Header:
     version: str | None = None
     date: str | None = None
     vendor: str | None = None
+    north: float | None = None
+    south: float | None = None
+    east: float | None = None
+    west: float | None = None
+    geo_reference: str | None = None
+    offset: Offset | None = None
+    license: License | None = None
+    default_regulations: DefaultRegulations | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Offset:
+    x: float
+    y: float
+    z: float
+    hdg: float
+
+
+@dataclass(frozen=True, slots=True)
+class License:
+    name: str
+    resource: str | None = None
+    spdxid: str | None = None
+    text: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RegulationSemantic:
+    name: str
+    attributes: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RoadRegulation:
+    type: str
+    semantics: tuple[RegulationSemantic, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class SignalRegulation:
+    type: str
+    subtype: str
+    semantics: tuple[RegulationSemantic, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DefaultRegulations:
+    road: tuple[RoadRegulation, ...] = ()
+    signals: tuple[SignalRegulation, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
