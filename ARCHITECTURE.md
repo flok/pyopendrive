@@ -54,10 +54,12 @@ road_map = OpenDriveMap.load("map.xodr")
 6. Recoverable unsupported elements and attributes produce immutable
    `OpenDriveDiagnostic` values on the map rather than being silently ignored.
 
-The parser currently reads `revMajor`/`revMinor`, common header metadata, and
+The parser reads `revMajor`/`revMinor`, complete header metadata (including
+georeference source text, offset values, license, and default regulations), and
 road IDs, lengths, junction references, and names. It handles XML namespace
 prefixes when comparing element names. A file header carries major/minor
-revision only; patch releases cannot be inferred from it.
+revision only; patch releases cannot be inferred from it. Header offsets and
+georeferences are preserved as data; coordinate transforms remain separate.
 
 ## Design boundaries
 
