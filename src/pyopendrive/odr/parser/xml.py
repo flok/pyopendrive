@@ -22,6 +22,7 @@ from pyopendrive.odr.models import (
     SignalRegulation,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
+from pyopendrive.odr.parser.profiles import ProfileParseError, parse_road_profiles
 
 type XmlSource = str | Path | IO[bytes] | IO[str]
 
@@ -62,8 +63,12 @@ def parse(source: XmlSource) -> OpenDriveMap:
     )
     header = _parse_header(header_element)
     road_elements = [element for element in root if _local_name(element.tag) == "road"]
-    roads = tuple(_parse_road(element) for element in road_elements)
-    diagnostics = _collect_diagnostics(root, header_element, road_elements)
+    roads = tuple(
+        _parse_road(element, format_version.minor) for element in road_elements
+    )
+    diagnostics = _collect_diagnostics(
+        root, header_element, road_elements, format_version.minor
+    )
     return OpenDriveMap(
         format_version=format_version,
         header=header,
@@ -72,7 +77,7 @@ def parse(source: XmlSource) -> OpenDriveMap:
     )
 
 
-def _parse_road(element: ElementTree.Element) -> Road:
+def _parse_road(element: ElementTree.Element, revision: int) -> Road:
     path = f"/OpenDRIVE/road[@id='{element.get('id', '?')}']"
     try:
         road_id = element.attrib["id"]
@@ -95,6 +100,11 @@ def _parse_road(element: ElementTree.Element) -> Road:
 
         geometries = parse_plan_view(plan_view, road_id)
 
+    try:
+        profiles = parse_road_profiles(element, path, revision)
+    except ProfileParseError as error:
+        raise OpenDriveParseError(error.message, element=error.element) from error
+
     return Road(
         id=road_id,
         length=length,
@@ -109,6 +119,7 @@ def _parse_road(element: ElementTree.Element) -> Road:
             if _local_name(child.tag) == "type"
         ),
         plan_view=geometries,
+        profiles=profiles,
     )
 
 
@@ -358,6 +369,7 @@ def _collect_diagnostics(
     root: ElementTree.Element,
     header: ElementTree.Element,
     roads: list[ElementTree.Element],
+    revision: int,
 ) -> tuple[OpenDriveDiagnostic, ...]:
     diagnostics: list[OpenDriveDiagnostic] = []
     _unsupported_attributes(root, set(), "/OpenDRIVE", diagnostics)
@@ -423,6 +435,31 @@ def _collect_diagnostics(
                         _unsupported_element(nested, nested_path, diagnostics)
             elif name == "planView":
                 continue
+            elif name in {"elevationProfile", "lateralProfile"}:
+                supported = (
+                    {"elevation"}
+                    if name == "elevationProfile"
+                    else {"superelevation", "shape"}
+                )
+                if name == "lateralProfile":
+                    if revision < 6:
+                        supported.add("crossfall")
+                    if revision >= 8:
+                        supported.add("crossSectionSurface")
+                for record in child:
+                    record_name = _local_name(record.tag)
+                    if record_name not in supported:
+                        _unsupported_element(
+                            record, f"{path}/{name}/{record_name}", diagnostics
+                        )
+            elif name == "lanes":
+                for record in child:
+                    if _local_name(record.tag) != "laneOffset":
+                        _unsupported_element(
+                            record,
+                            f"{path}/lanes/{_local_name(record.tag)}",
+                            diagnostics,
+                        )
             else:
                 _unsupported_element(child, f"{path}/{name}", diagnostics)
 

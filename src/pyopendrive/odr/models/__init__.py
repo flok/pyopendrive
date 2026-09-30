@@ -21,10 +21,21 @@ from pyopendrive.odr.models.opendrive import (
     RoadRegulation,
     SignalRegulation,
 )
+from pyopendrive.odr.models.profiles import (
+    Crossfall,
+    CrossSectionSurface,
+    PolynomialProfile,
+    RoadProfiles,
+    Shape,
+    SurfaceCoefficients,
+    SurfaceStrip,
+)
 from pyopendrive.odr.models.road import Road, RoadLink, RoadSpeed, RoadType
 
 __all__ = [
     "DefaultRegulations",
+    "Crossfall",
+    "CrossSectionSurface",
     "Header",
     "Arc",
     "GeometrySegment",
@@ -44,5 +55,10 @@ __all__ = [
     "SignalRegulation",
     "ParamPoly3",
     "Poly3",
+    "PolynomialProfile",
     "Spiral",
+    "RoadProfiles",
+    "Shape",
+    "SurfaceCoefficients",
+    "SurfaceStrip",
 ]
