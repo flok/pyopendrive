@@ -242,7 +242,27 @@ def test_parses_road_types_and_links() -> None:
     assert road.types[0].speed.value == 13.9
     assert road.types[0].speed.unit == "m/s"
     assert road.types[1].speed.value == "no limit"
-    assert road_map.diagnostics == ()
+
+
+def test_load_attaches_lane_layers_and_reports_unknown_lane_elements() -> None:
+    road_map = OpenDriveMap.load(
+        StringIO(
+            '<OpenDRIVE><header revMajor="1" revMinor="9"/>'
+            '<road id="1" length="10" junction="-1"><lanes layer="permanent">'
+            '<laneSection s="0"><center><lane id="0"/></center></laneSection>'
+            "<unexpected/></lanes></road></OpenDRIVE>"
+        )
+    )
+
+    assert road_map.roads[0].lane_layers[0].layer == "permanent"
+    assert road_map.roads[0].lane_layers[0].sections[0].lanes.center[0].id == 0
+    assert road_map.diagnostics == (
+        OpenDriveDiagnostic(
+            "unsupported-element",
+            "Element 'unexpected' is not currently parsed.",
+            "/OpenDRIVE/road[@id='1']/lanes/unexpected",
+        ),
+    )
 
 
 def test_invalid_road_type_reports_context() -> None:

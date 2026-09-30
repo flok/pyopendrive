@@ -22,6 +22,7 @@ from pyopendrive.odr.models import (
     SignalRegulation,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
+from pyopendrive.odr.parser.lanes import LaneParseError, parse_lane_layers
 from pyopendrive.odr.parser.profiles import ProfileParseError, parse_road_profiles
 
 type XmlSource = str | Path | IO[bytes] | IO[str]
@@ -105,6 +106,11 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
     except ProfileParseError as error:
         raise OpenDriveParseError(error.message, element=error.element) from error
 
+    try:
+        lane_layers = parse_lane_layers(element)
+    except LaneParseError as error:
+        raise OpenDriveParseError(error.message, element=error.element) from error
+
     return Road(
         id=road_id,
         length=length,
@@ -120,6 +126,7 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
         ),
         plan_view=geometries,
         profiles=profiles,
+        lane_layers=lane_layers,
     )
 
 
@@ -453,13 +460,7 @@ def _collect_diagnostics(
                             record, f"{path}/{name}/{record_name}", diagnostics
                         )
             elif name == "lanes":
-                for record in child:
-                    if _local_name(record.tag) != "laneOffset":
-                        _unsupported_element(
-                            record,
-                            f"{path}/lanes/{_local_name(record.tag)}",
-                            diagnostics,
-                        )
+                _lane_diagnostics(child, f"{path}/lanes", diagnostics)
             else:
                 _unsupported_element(child, f"{path}/{name}", diagnostics)
 
@@ -519,6 +520,82 @@ def _default_regulation_diagnostics(
                     _unsupported_element(
                         semantic, f"{container_path}/{semantic_name}", diagnostics
                     )
+
+
+def _lane_diagnostics(
+    element: ElementTree.Element,
+    path: str,
+    diagnostics: list[OpenDriveDiagnostic],
+) -> None:
+    supported_children = {
+        "lanes": {"laneOffset", "laneSection"},
+        "laneSection": {"left", "center", "right"},
+        "left": {"lane"},
+        "center": {"lane"},
+        "right": {"lane"},
+        "lane": {
+            "link",
+            "width",
+            "border",
+            "roadMark",
+            "material",
+            "speed",
+            "access",
+            "height",
+            "rule",
+        },
+        "link": {"predecessor", "successor"},
+        "roadMark": {"type"},
+        "type": {"line"},
+    }
+    supported_attributes = {
+        "lanes": {"layer"},
+        "laneOffset": {"s", "a", "b", "c", "d"},
+        "laneSection": {"s", "length", "singleSide"},
+        "lane": {
+            "id",
+            "type",
+            "level",
+            "roadWorks",
+            "advisory",
+            "direction",
+            "dynamicLaneDirection",
+            "dynamicLaneType",
+        },
+        "predecessor": {"id", "layer"},
+        "successor": {"id", "layer"},
+        "width": {"sOffset", "a", "b", "c", "d"},
+        "border": {"sOffset", "a", "b", "c", "d"},
+        "roadMark": {
+            "sOffset",
+            "type",
+            "material",
+            "weight",
+            "color",
+            "width",
+            "laneChange",
+            "height",
+        },
+        "type": {"name", "width"},
+        "line": {"sOffset", "length", "space", "tOffset", "rule", "width"},
+        "material": {"sOffset", "surface", "friction", "roughness"},
+        "speed": {"sOffset", "max", "unit"},
+        "access": {"sOffset", "restriction", "rule"},
+        "height": {"sOffset", "inner", "outer"},
+        "rule": {"sOffset"},
+    }
+    name = _local_name(element.tag)
+    _unsupported_attributes(
+        element, supported_attributes.get(name, set()), path, diagnostics
+    )
+    allowed = supported_children.get(name, set())
+    for child in element:
+        child_name = _local_name(child.tag)
+        child_path = f"{path}/{child_name}"
+        if child_name not in allowed:
+            _unsupported_element(child, child_path, diagnostics)
+        else:
+            _lane_diagnostics(child, child_path, diagnostics)
 
 
 def _unsupported_attributes(
