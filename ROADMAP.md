@@ -7,15 +7,16 @@ implementation and the project's architecture documented in
 
 ## Current implementation
 
-- Public entry point: `OpenDrive.load(source)`, exported from `pyopendrive`;
-  it returns an `OpenDriveMap`.
+- Public entry point: `OpenDriveMap.load(source)`, exported from `pyopendrive`;
+  it accepts paths and caller-owned streams. `OpenDrive.load` remains an alias.
 - `odr/api.py` is the loading facade. `odr/parser/xml.py` parses XML with the
   standard-library `ElementTree`; `odr/models/` contains data-only, immutable
   models. The parser and models remain separate.
 - The parser reads header revision, common header metadata, and road IDs,
   lengths, junction references, and names. It handles namespace-prefixed XML
   names and reports malformed XML or missing required structure through
-  `OpenDriveParseError`.
+  `OpenDriveParseError`. Unsupported content produces structured diagnostics
+  with element context.
 - Road geometry, profiles, lanes, junctions, signals, objects, supplementary
   elements, validation, and older-version-specific behavior remain planned;
   the compatibility target and major feature groups are summarized below.
@@ -31,7 +32,7 @@ implementation and the project's architecture documented in
 
 ### M1 — Parser foundation
 
-3. [Stabilize the file-loading API and diagnostics](https://github.com/flok/pyopendrive/issues/3) — planned; align the issue's `OpenDriveMap.load(...)` wording with the implemented `OpenDrive.load(...)` facade.
+3. [Stabilize the file-loading API and diagnostics](https://github.com/flok/pyopendrive/issues/3) — **complete**; paths and caller-owned streams share `OpenDriveMap.load(...)`, with contextual errors and recoverable diagnostics.
 4. [Set up CI and supported-Python verification](https://github.com/flok/pyopendrive/issues/4) — planned.
 
 ### M2 — Core road model
