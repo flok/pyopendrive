@@ -1,14 +1,19 @@
 """Python interface to ASAM OpenDRIVE."""
 
 from pyopendrive.odr import (
+    Arc,
     DefaultRegulations,
+    GeometrySegment,
     Header,
     License,
+    Line,
     Offset,
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveParseError,
     OpenDriveVersion,
+    ParamPoly3,
+    Poly3,
     RegulationSemantic,
     Road,
     RoadLink,
@@ -16,12 +21,16 @@ from pyopendrive.odr import (
     RoadSpeed,
     RoadType,
     SignalRegulation,
+    Spiral,
 )
 from pyopendrive.odr.api import OpenDrive
 
 __all__ = [
     "DefaultRegulations",
+    "Arc",
+    "GeometrySegment",
     "Header",
+    "Line",
     "License",
     "Offset",
     "OpenDrive",
@@ -29,6 +38,8 @@ __all__ = [
     "OpenDriveMap",
     "OpenDriveParseError",
     "OpenDriveVersion",
+    "ParamPoly3",
+    "Poly3",
     "Road",
     "RoadLink",
     "RoadRegulation",
@@ -36,4 +47,5 @@ __all__ = [
     "RoadType",
     "RegulationSemantic",
     "SignalRegulation",
+    "Spiral",
 ]

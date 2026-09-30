@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from pyopendrive.odr.models.geometry import GeometrySegment
+
 
 @dataclass(frozen=True, slots=True)
 class RoadSpeed:
@@ -37,3 +39,4 @@ class Road:
     predecessor: RoadLink | None = None
     successor: RoadLink | None = None
     types: tuple[RoadType, ...] = ()
+    plan_view: tuple[GeometrySegment, ...] = ()

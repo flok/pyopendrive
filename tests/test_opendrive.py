@@ -205,11 +205,6 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
         ),
         OpenDriveDiagnostic(
             "unsupported-element",
-            "Element 'planView' is not currently parsed.",
-            "/OpenDRIVE/road[@id='1']/planView",
-        ),
-        OpenDriveDiagnostic(
-            "unsupported-element",
             "Element 'controller' is not currently parsed.",
             "/OpenDRIVE/controller",
         ),

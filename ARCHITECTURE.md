@@ -27,6 +27,7 @@ src/pyopendrive/
     │   └── road.py         # Road metadata, links, types, and speeds
     └── parser/
         ├── __init__.py
+        ├── geometry.py     # Plan-view geometry conversion
         └── xml.py          # XML-to-model conversion
 ```
 
@@ -59,10 +60,12 @@ The parser reads `revMajor`/`revMinor`, complete header metadata (including
 georeference source text, offset values, license, and default regulations), and
 road IDs, lengths, junction references, names, rules, road types, speed
 metadata, and predecessor/successor links. Road identifiers remain strings and
-road type records retain document order. It handles XML namespace prefixes
-when comparing element names. A file header carries major/minor revision only;
-patch releases cannot be inferred from it. Header offsets and georeferences
-are preserved as data; coordinate transforms remain separate.
+road type records and plan-view segments retain document order. Plan-view
+geometry preserves the line, arc, spiral, poly3, or paramPoly3 source values;
+geometry evaluation remains separate. The parser handles XML namespace
+prefixes when comparing element names. A file header carries major/minor
+revision only; patch releases cannot be inferred from it. Header offsets and
+georeferences are preserved as data; coordinate transforms remain separate.
 
 ## Design boundaries
 

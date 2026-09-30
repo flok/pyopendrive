@@ -2,13 +2,18 @@
 
 from pyopendrive.odr.api import OpenDrive
 from pyopendrive.odr.models import (
+    Arc,
     DefaultRegulations,
+    GeometrySegment,
     Header,
     License,
+    Line,
     Offset,
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveVersion,
+    ParamPoly3,
+    Poly3,
     RegulationSemantic,
     Road,
     RoadLink,
@@ -16,12 +21,16 @@ from pyopendrive.odr.models import (
     RoadSpeed,
     RoadType,
     SignalRegulation,
+    Spiral,
 )
 from pyopendrive.odr.parser import OpenDriveParseError
 
 __all__ = [
     "DefaultRegulations",
+    "Arc",
+    "GeometrySegment",
     "Header",
+    "Line",
     "License",
     "Offset",
     "OpenDrive",
@@ -29,6 +38,8 @@ __all__ = [
     "OpenDriveMap",
     "OpenDriveParseError",
     "OpenDriveVersion",
+    "ParamPoly3",
+    "Poly3",
     "Road",
     "RoadLink",
     "RoadRegulation",
@@ -36,4 +47,5 @@ __all__ = [
     "RoadType",
     "RegulationSemantic",
     "SignalRegulation",
+    "Spiral",
 ]

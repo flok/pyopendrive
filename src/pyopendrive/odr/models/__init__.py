@@ -1,5 +1,13 @@
 """Public domain models for the OpenDRIVE namespace."""
 
+from pyopendrive.odr.models.geometry import (
+    Arc,
+    GeometrySegment,
+    Line,
+    ParamPoly3,
+    Poly3,
+    Spiral,
+)
 from pyopendrive.odr.models.opendrive import (
     DefaultRegulations,
     Header,
@@ -18,6 +26,9 @@ from pyopendrive.odr.models.road import Road, RoadLink, RoadSpeed, RoadType
 __all__ = [
     "DefaultRegulations",
     "Header",
+    "Arc",
+    "GeometrySegment",
+    "Line",
     "License",
     "Offset",
     "OpenDriveDiagnostic",
@@ -31,4 +42,7 @@ __all__ = [
     "RoadType",
     "RegulationSemantic",
     "SignalRegulation",
+    "ParamPoly3",
+    "Poly3",
+    "Spiral",
 ]
