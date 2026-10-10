@@ -5,7 +5,7 @@ from io import StringIO
 
 import pytest
 
-from pyopendrive import OpenDriveMap, OpenDriveParseError
+from pyopendrive import OpenDriveMap, OpenDriveParseError, validate_junctions
 
 
 def load(content: str, namespace: str = "") -> OpenDriveMap:
@@ -171,13 +171,19 @@ def test_missing_or_invalid_attributes_have_context(
     assert caught.value.element.endswith(element)
 
 
-def test_unsupported_nested_junction_content_is_reported() -> None:
+def test_supported_junction_geometry_and_unknown_content_diagnostics() -> None:
     road_map = load(
         """<junction id="j" future="value">
           <connection id="c" extra="value">
             <laneLink from="-1" to="-1"><userData/></laneLink>
           </connection>
-          <planView/><crossPath/>
+          <planView>
+            <geometry s="0" x="0" y="0" hdg="0" length="10"><line/></geometry>
+          </planView>
+          <crossPath id="cp" crossingRoad="r3" roadAtStart="r1" roadAtEnd="r2">
+            <startLaneLink s="0" from="-1" to="-1"/>
+            <endLaneLink s="10" from="1" to="1"/>
+          </crossPath>
           <controller id="c" name="unsupported"><control signalId="s"/></controller>
         </junction>
         <controller id="c" type="unsupported"><userData/></controller>"""
@@ -188,14 +194,10 @@ def test_unsupported_nested_junction_content_is_reported() -> None:
         "unsupported-element",
         "/OpenDRIVE/junction[@id='j']/connection[@id='c']/laneLink/userData",
     ) in observations
-    assert (
-        "unsupported-element",
-        "/OpenDRIVE/junction[@id='j']/planView",
-    ) in observations
-    assert (
-        "unsupported-element",
-        "/OpenDRIVE/junction[@id='j']/crossPath",
-    ) in observations
+    assert not any(
+        path.endswith("/planView") or path.endswith("/crossPath")
+        for _, path in observations
+    )
     assert (
         "unsupported-element",
         "/OpenDRIVE/junction[@id='j']/controller[@id='c']/control",
@@ -208,3 +210,70 @@ def test_map_without_topology_records_has_empty_tuples() -> None:
     assert road_map.junctions == ()
     assert road_map.junction_groups == ()
     assert road_map.controllers == ()
+
+
+def test_junction_reference_validation_is_opt_in_and_keeps_source_ids() -> None:
+    road_map = load("""<junction id="j"><connection id="c" incomingRoad="missing"/>
+      <crossPath id="cp" crossingRoad="missing" roadAtStart="r1" roadAtEnd="r2">
+        <startLaneLink s="0" from="-1" to="-1"/><endLaneLink s="1" from="1" to="1"/>
+      </crossPath></junction>""")
+    assert road_map.diagnostics == ()
+    assert road_map.junctions[0].cross_paths[0].crossing_road == "missing"
+    assert [item.code for item in validate_junctions(road_map)].count(
+        "unresolved-road"
+    ) == 4
+
+
+def test_junction_boundary_elevation_grid_and_crg_metadata() -> None:
+    road_map = load("""<junction id="j">
+      <boundary>
+        <segment type="lane" roadId="r" boundaryLane="-1" sStart="begin" sEnd="20"/>
+        <segment type="joint" roadId="r2" contactPoint="end" transitionLength="2.5"/>
+      </boundary>
+      <elevationGrid sStart="0" gridSpacing="0.5">
+        <elevation center="1 2" left="0.5 1.5" right="1.5 2.5"/>
+      </elevationGrid>
+      <surface>
+        <CRG file="surface.crg" mode="attached" orientation="+"
+             sStart="0" sEnd="20" zScale="1.2"/>
+      </surface>
+    </junction>""")
+    junction = road_map.junctions[0]
+    assert junction.boundary is not None
+    assert junction.boundary.segments[0].s_start == "begin"
+    assert junction.boundary.segments[1].transition_length == 2.5
+    assert junction.elevation_grid is not None
+    assert junction.elevation_grid.elevations[0].center == (1.0, 2.0)
+    assert junction.crgs[0].file == "surface.crg"
+    assert junction.crgs[0].z_scale == 1.2
+
+
+def test_junction_validator_checks_lane_ids_and_type_requirements() -> None:
+    road_map = load("""
+      <road id="in" length="10" junction="-1"><lanes><laneSection s="0">
+        <left><lane id="1"/></left><center><lane id="0"/></center>
+      </laneSection></lanes></road>
+      <road id="connect" length="10" junction="j"><lanes><laneSection s="0">
+        <left><lane id="2"/></left><center><lane id="0"/></center>
+      </laneSection></lanes></road>
+      <junction id="j"><connection id="c" incomingRoad="in"
+        connectingRoad="connect" contactPoint="start">
+        <laneLink from="7" to="2"/>
+      </connection></junction>
+      <junction id="virtual" type="virtual"/>
+    """)
+    observations = [(item.code, item.element) for item in validate_junctions(road_map)]
+    assert (
+        "unresolved-lane",
+        "/OpenDRIVE/junction[@id='j']/connection[@id='c']/@from",
+    ) in observations
+    assert sum(code == "missing-junction-field" for code, _ in observations) == 4
+
+
+def test_junction_validator_reports_known_type_cardinalities() -> None:
+    road_map = load('<junction id="cross" type="crossing"/>')
+    diagnostics = validate_junctions(road_map)
+    assert any(
+        item.code == "junction-cardinality" and "roadSection" in item.message
+        for item in diagnostics
+    )

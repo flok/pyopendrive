@@ -10,13 +10,22 @@ changes remain unverified. Parsing does not perform schema or topology validatio
 import math
 from xml.etree import ElementTree
 
+from pyopendrive.odr.models.geometry import GeometrySegment, Line
 from pyopendrive.odr.models.junctions import (
     Controller,
     ControllerControl,
     Junction,
+    JunctionBoundary,
+    JunctionBoundaryJoint,
+    JunctionBoundaryLane,
     JunctionConnection,
     JunctionConnectionLink,
     JunctionController,
+    JunctionCrg,
+    JunctionCrossPath,
+    JunctionCrossPathLaneLink,
+    JunctionElevationGrid,
+    JunctionGridElevation,
     JunctionGroup,
     JunctionLaneLink,
     JunctionPriority,
@@ -69,7 +78,219 @@ def parse_junction(element: ElementTree.Element) -> Junction:
             )
             for child in _children(element, "roadSection")
         ),
+        cross_paths=tuple(
+            _cross_path(child, path) for child in _children(element, "crossPath")
+        ),
+        plan_view=_junction_plan_view(element, path),
+        boundary=_boundary(element, path),
+        elevation_grid=_elevation_grid(element, path),
+        crgs=_crgs(element, path),
     )
+
+
+def _cross_path(element: ElementTree.Element, parent_path: str) -> JunctionCrossPath:
+    path = f"{parent_path}/crossPath[@id='{element.get('id', '?')}']"
+    links = {}
+    for name in ("startLaneLink", "endLaneLink"):
+        matches = _children(element, name)
+        if len(matches) != 1:
+            raise JunctionParseError(
+                f"Cross path requires exactly one '{name}' element.", element=path
+            )
+        child = matches[0]
+        child_path = f"{path}/{name}"
+        links[name] = JunctionCrossPathLaneLink(
+            s=_float(child, "s", child_path),
+            from_lane=_int(child, "from", child_path),
+            to_lane=_int(child, "to", child_path),
+        )
+    return JunctionCrossPath(
+        id=_required(element, "id", path),
+        crossing_road=_required(element, "crossingRoad", path),
+        road_at_start=_required(element, "roadAtStart", path),
+        road_at_end=_required(element, "roadAtEnd", path),
+        start_lane_link=links["startLaneLink"],
+        end_lane_link=links["endLaneLink"],
+    )
+
+
+def _junction_plan_view(
+    element: ElementTree.Element, path: str
+) -> tuple[GeometrySegment, ...] | None:
+    plans = _children(element, "planView")
+    if len(plans) > 1:
+        raise JunctionParseError("Junction allows at most one planView.", element=path)
+    if not plans:
+        return None
+    plan = plans[0]
+    geometries = _children(plan, "geometry")
+    if len(geometries) != 1:
+        raise JunctionParseError(
+            "Junction reference line requires exactly one geometry.",
+            element=f"{path}/planView",
+        )
+    geometry = geometries[0]
+    geometry_path = f"{path}/planView/geometry"
+    lines = _children(geometry, "line")
+    if len(lines) != 1 or len(geometry) != 1:
+        raise JunctionParseError(
+            "Junction reference line geometry must contain one line primitive.",
+            element=geometry_path,
+        )
+    return (
+        GeometrySegment(
+            s=_float(geometry, "s", geometry_path),
+            x=_float(geometry, "x", geometry_path),
+            y=_float(geometry, "y", geometry_path),
+            heading=_float(geometry, "hdg", geometry_path),
+            length=_float(geometry, "length", geometry_path),
+            primitive=Line(),
+        ),
+    )
+
+
+def _boundary(element: ElementTree.Element, path: str) -> JunctionBoundary | None:
+    matches = _children(element, "boundary")
+    if len(matches) > 1:
+        raise JunctionParseError("Junction allows at most one boundary.", element=path)
+    if not matches:
+        return None
+    result = []
+    for segment in _children(matches[0], "segment"):
+        segment_path = f"{path}/boundary/segment"
+        kind = _required(segment, "type", segment_path)
+        road_id = _required(segment, "roadId", segment_path)
+        if kind == "lane":
+            result.append(
+                JunctionBoundaryLane(
+                    road_id=road_id,
+                    boundary_lane=_int(segment, "boundaryLane", segment_path),
+                    s_start=_position(segment, "sStart", segment_path),
+                    s_end=_position(segment, "sEnd", segment_path),
+                )
+            )
+        elif kind == "joint":
+            result.append(
+                JunctionBoundaryJoint(
+                    road_id=road_id,
+                    contact_point=_contact_point(segment, segment_path),
+                    joint_lane_start=_optional_int(
+                        segment, "jointLaneStart", segment_path
+                    ),
+                    joint_lane_end=_optional_int(segment, "jointLaneEnd", segment_path),
+                    transition_length=_optional_float(
+                        segment, "transitionLength", segment_path
+                    ),
+                )
+            )
+        else:
+            raise JunctionParseError(
+                f"Unknown boundary segment type {kind!r}.", element=segment_path
+            )
+    if not result:
+        raise JunctionParseError(
+            "Boundary requires at least one segment.", element=f"{path}/boundary"
+        )
+    return JunctionBoundary(tuple(result))
+
+
+def _position(element: ElementTree.Element, name: str, path: str) -> float | str:
+    value = _required(element, name, path)
+    if value in {"begin", "end", "start"}:
+        return value
+    try:
+        result = float(value)
+        if not math.isfinite(result):
+            raise ValueError
+        return result
+    except ValueError as error:
+        raise JunctionParseError(
+            f"Invalid position {name!r}: {value!r}.", element=path
+        ) from error
+
+
+def _contact_point(element: ElementTree.Element, path: str) -> str:
+    value = _required(element, "contactPoint", path)
+    if value not in {"start", "end"}:
+        raise JunctionParseError(
+            f"Invalid contactPoint value: {value!r}.", element=path
+        )
+    return value
+
+
+def _elevation_grid(
+    element: ElementTree.Element, path: str
+) -> JunctionElevationGrid | None:
+    matches = _children(element, "elevationGrid")
+    if len(matches) > 1:
+        raise JunctionParseError(
+            "Junction allows at most one elevationGrid.", element=path
+        )
+    if not matches:
+        return None
+    grid = matches[0]
+    grid_path = f"{path}/elevationGrid"
+    rows = []
+    for row in _children(grid, "elevation"):
+        row_path = f"{grid_path}/elevation"
+        rows.append(
+            JunctionGridElevation(
+                center=_float_list(row, "center", row_path),
+                left=_optional_float_list(row, "left", row_path),
+                right=_optional_float_list(row, "right", row_path),
+            )
+        )
+    return JunctionElevationGrid(
+        s_start=_float(grid, "sStart", grid_path),
+        grid_spacing=_float(grid, "gridSpacing", grid_path),
+        elevations=tuple(rows),
+    )
+
+
+def _float_list(
+    element: ElementTree.Element, name: str, path: str
+) -> tuple[float, ...]:
+    value = _required(element, name, path)
+    try:
+        values = tuple(float(part) for part in value.split())
+        if not values or not all(math.isfinite(item) for item in values):
+            raise ValueError
+        return values
+    except ValueError as error:
+        raise JunctionParseError(
+            f"Invalid numeric list {name!r}: {value!r}.", element=path
+        ) from error
+
+
+def _optional_float_list(
+    element: ElementTree.Element, name: str, path: str
+) -> tuple[float, ...] | None:
+    return _float_list(element, name, path) if name in element.attrib else None
+
+
+def _crgs(element: ElementTree.Element, path: str) -> tuple[JunctionCrg, ...]:
+    surfaces = _children(element, "surface")
+    if len(surfaces) > 1:
+        raise JunctionParseError("Junction allows at most one surface.", element=path)
+    result = []
+    for crg in _children(surfaces[0], "CRG") if surfaces else ():
+        crg_path = f"{path}/surface/CRG"
+        result.append(
+            JunctionCrg(
+                file=_required(crg, "file", crg_path),
+                mode=_required(crg, "mode", crg_path),
+                orientation=_required(crg, "orientation", crg_path),
+                s_start=_float(crg, "sStart", crg_path),
+                s_end=_float(crg, "sEnd", crg_path),
+                purpose=crg.get("purpose"),
+                h_offset=_optional_float(crg, "hOffset", crg_path),
+                s_offset=_optional_float(crg, "sOffset", crg_path),
+                t_offset=_optional_float(crg, "tOffset", crg_path),
+                z_offset=_optional_float(crg, "zOffset", crg_path),
+                z_scale=_optional_float(crg, "zScale", crg_path),
+            )
+        )
+    return tuple(result)
 
 
 def _connection(element: ElementTree.Element, parent_path: str) -> JunctionConnection:

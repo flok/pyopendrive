@@ -1,6 +1,12 @@
 """Immutable junction topology and signal controller records."""
 
 from dataclasses import dataclass
+from typing import Literal
+
+from pyopendrive.odr.models.geometry import GeometrySegment
+
+type JunctionBoundaryPosition = float | Literal["begin", "end", "start"]
+type JunctionContactPoint = Literal["start", "end"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +60,77 @@ class JunctionRoadSection:
 
 
 @dataclass(frozen=True, slots=True)
+class JunctionCrossPathLaneLink:
+    s: float
+    from_lane: int
+    to_lane: int
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionCrossPath:
+    id: str
+    crossing_road: str
+    road_at_start: str
+    road_at_end: str
+    start_lane_link: JunctionCrossPathLaneLink
+    end_lane_link: JunctionCrossPathLaneLink
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionBoundaryLane:
+    road_id: str
+    boundary_lane: int
+    s_start: JunctionBoundaryPosition
+    s_end: JunctionBoundaryPosition
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionBoundaryJoint:
+    road_id: str
+    contact_point: JunctionContactPoint
+    joint_lane_start: int | None = None
+    joint_lane_end: int | None = None
+    transition_length: float | None = None
+
+
+type JunctionBoundarySegment = JunctionBoundaryLane | JunctionBoundaryJoint
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionBoundary:
+    segments: tuple[JunctionBoundarySegment, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionGridElevation:
+    center: tuple[float, ...]
+    left: tuple[float, ...] | None = None
+    right: tuple[float, ...] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionElevationGrid:
+    s_start: float
+    grid_spacing: float
+    elevations: tuple[JunctionGridElevation, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionCrg:
+    file: str
+    mode: str
+    orientation: str
+    s_start: float
+    s_end: float
+    purpose: str | None = None
+    h_offset: float | None = None
+    s_offset: float | None = None
+    t_offset: float | None = None
+    z_offset: float | None = None
+    z_scale: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class Junction:
     id: str
     name: str | None = None
@@ -66,6 +143,11 @@ class Junction:
     priorities: tuple[JunctionPriority, ...] = ()
     controllers: tuple[JunctionController, ...] = ()
     road_sections: tuple[JunctionRoadSection, ...] = ()
+    cross_paths: tuple[JunctionCrossPath, ...] = ()
+    plan_view: tuple[GeometrySegment, ...] | None = None
+    boundary: JunctionBoundary | None = None
+    elevation_grid: JunctionElevationGrid | None = None
+    crgs: tuple[JunctionCrg, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
