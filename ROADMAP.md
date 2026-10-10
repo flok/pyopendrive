@@ -60,7 +60,7 @@ implementation and the project's architecture documented in
 
 ### M3 — Network features
 
-10. Parse junctions and lane connections — **partial**; connections, lane links, virtual endpoints, crossing road sections, priorities, and groups are implemented. Cross paths, junction geometry, and surfaces remain unsupported.
+10. Parse junctions and lane connections — **implemented with validation limits**; connections, lane links, virtual endpoints, crossing road sections, groups, cross paths, reference-line geometry, boundary segments, elevation grids, and CRG metadata are parsed. Optional road/junction reference checks are available. Lane-level topology, geometric checks, CRG decoding, and unverified revision-specific cardinalities remain open.
 11. Parse signals and controllers — **partial**; signals, references, lane validity, dependencies, links, and static controller mappings are implemented. Signal semantics and alternate position records remain unsupported.
 12. Parse road objects and object references — **partial**; object attributes, references, road/local outline corners, smooth outline curves, and markings are implemented. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported.
 13. Parse supplementary network elements.

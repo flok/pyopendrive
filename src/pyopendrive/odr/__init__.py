@@ -1,6 +1,7 @@
 """OpenDRIVE map models and XML parser implementation."""
 
 from pyopendrive.odr.api import OpenDrive
+from pyopendrive.odr.checks import validate_junctions
 from pyopendrive.odr.models import (
     Arc,
     Controller,
@@ -14,9 +15,17 @@ from pyopendrive.odr.models import (
     GeometrySegment,
     Header,
     Junction,
+    JunctionBoundary,
+    JunctionBoundaryJoint,
+    JunctionBoundaryLane,
     JunctionConnection,
     JunctionConnectionLink,
     JunctionController,
+    JunctionCrg,
+    JunctionCrossPath,
+    JunctionCrossPathLaneLink,
+    JunctionElevationGrid,
+    JunctionGridElevation,
     JunctionGroup,
     JunctionLaneLink,
     JunctionPriority,
@@ -83,6 +92,14 @@ __all__ = [
     "GeometrySegment",
     "Header",
     "Junction",
+    "JunctionBoundary",
+    "JunctionBoundaryJoint",
+    "JunctionBoundaryLane",
+    "JunctionCrossPath",
+    "JunctionCrossPathLaneLink",
+    "JunctionCrg",
+    "JunctionElevationGrid",
+    "JunctionGridElevation",
     "JunctionConnection",
     "JunctionConnectionLink",
     "JunctionController",
@@ -138,4 +155,5 @@ __all__ = [
     "Spiral",
     "SurfaceCoefficients",
     "SurfaceStrip",
+    "validate_junctions",
 ]
