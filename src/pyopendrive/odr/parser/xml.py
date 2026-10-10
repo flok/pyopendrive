@@ -582,7 +582,7 @@ def _lane_diagnostics(
         "speed": {"sOffset", "max", "unit"},
         "access": {"sOffset", "restriction", "rule"},
         "height": {"sOffset", "inner", "outer"},
-        "rule": {"sOffset"},
+        "rule": {"sOffset", "value"},
     }
     name = _local_name(element.tag)
     _unsupported_attributes(
@@ -605,12 +605,11 @@ def _unsupported_attributes(
     diagnostics: list[OpenDriveDiagnostic],
 ) -> None:
     for attribute in element.attrib:
-        name = _local_name(attribute)
-        if name not in supported:
+        if attribute not in supported:
             diagnostics.append(
                 OpenDriveDiagnostic(
                     code="unsupported-attribute",
-                    message=f"Attribute '{name}' is not currently parsed.",
+                    message=f"Attribute '{attribute}' is not currently parsed.",
                     element=path,
                 )
             )

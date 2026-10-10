@@ -21,7 +21,7 @@ def test_parse_lane_layers_and_properties_in_document_order() -> None:
                 <speed sOffset="0" max="0" unit="m/s"/>
                 <access sOffset="0" restriction="pedestrian" rule="deny"/>
                 <height sOffset="0" inner="0" outer="0"/>
-                <rule sOffset="0">no stopping</rule>
+                <rule sOffset="0" value="no stopping"/>
                 <roadMark sOffset="0" type="solid" color="white">
                   <type name="solid" width="0.12">
                     <line sOffset="0" length="3" space="0" width="0.12"/>
