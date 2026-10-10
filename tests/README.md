@@ -5,7 +5,7 @@
 Run the parser checks without a download:
 
 ```console
-uv run pytest tests/test_compatibility.py tests/test_opendrive.py tests/test_geometry.py tests/test_profiles.py tests/test_lanes.py
+uv run --locked pytest tests/test_compatibility.py tests/test_opendrive.py tests/test_geometry.py tests/test_profiles.py tests/test_lanes.py
 ```
 
 `fixtures/revisions/1.4/` through `fixtures/revisions/1.9/` contain independently
@@ -45,7 +45,7 @@ first introduced.
 Run the complete local test flow with:
 
 ```console
-uv run python tests/fetch_testdata.py && uv run pytest
+uv run --locked python tests/fetch_testdata.py && uv run --locked pytest
 ```
 
 The first command downloads ASAM's **ASAM OpenDRIVE 1.9.0 Examples and use

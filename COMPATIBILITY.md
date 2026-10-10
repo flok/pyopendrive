@@ -5,6 +5,10 @@ current data model is based on ASAM OpenDRIVE 1.9.0. The parser reads XML into
 Python objects; schema validation, semantic checks, and geometry calculations
 are separate capabilities.
 
+Authored fixtures cover shared parser behavior under header revisions 1.4
+through 1.9. Their historical schema validity is unknown. These fixtures are
+not evidence that every feature or version-specific rule is supported.
+
 The project targets Python 3.12 and newer, uses `uv` for project and build
 management, and Ruff for linting/formatting. The public loading API is
 `pyopendrive.OpenDriveMap.load(source)`; it returns typed models without
@@ -49,10 +53,10 @@ claim that every detail has already been implemented.
 | Road links, road types, rules, metadata | Partial | Supported | Parses ordered type/speed records and predecessor/successor references; extended lane-layer state is tracked with the lane model. |
 | Plan-view geometry | Supported | Supported | Parses ordered line, arc, spiral, poly3, and paramPoly3 segments while preserving source parameters; curve evaluation remains separate. |
 | Elevation, superelevation, shape, cross-section profiles | Supported | Supported | Parses revision-aware coefficient records and cross-section surfaces; evaluating geometry is outside the initial target. |
-| Lanes, lane links, road marks, access, speeds, widths | Partial | Supported | Parses layers, sections, groups, links, widths/borders, road marks, and supported properties; unknown lane extensions still need diagnostics. |
-| Junctions, connections, junction groups, controllers | Planned | Supported | Includes common, direct, virtual, and crossing junction types. |
-| Signals and lane validity | Planned | Supported | Includes harmonized signal categories and temporary/invalidated state. |
-| Road objects and object outlines/markings | Planned | Supported | Includes 1.9 smooth outlines and marking reference changes. |
+| Lanes, lane links, road marks, access, speeds, widths | Partial | Supported | Parses layers, sections, groups, links, widths/borders, road marks, and common properties. Lane rules read the required `value` attribute. Unsupported nested children and attributes are diagnosed, including qualified vendor attributes. Explicit road-mark lines, sway, line color, and unknown payload preservation remain unsupported. |
+| Junctions, connections, junction groups, controllers | Partial | Supported | Parses identities, connections and lane links, virtual endpoints, crossing road sections, priorities, groups, and static controller mappings. Cross paths, junction geometry, surfaces, type-dependent cardinalities, and topology validation remain unsupported. |
+| Signals and lane validity | Partial | Supported | Parses signals/references, dependencies, signal links, lane validity, and temporary/invalidated source state. Signal semantics and alternate position records remain unsupported and are diagnosed. |
+| Road objects and object outlines/markings | Partial | Supported | Parses object/reference attributes, road/local outline corners, smooth line/arc/paramPoly3 curves, and object/outline markings. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported and are diagnosed. |
 | Rail tracks, switches, tram, and stations | Planned | Supported | Static network elements only. |
 | `userData`, `include`, data quality, unknown extensions | Planned | Preserve or report | Preserve unknown extension payload where practical; include expansion is tracked separately. |
 | XSD and semantic validation | Not implemented | Optional | Not a mandatory runtime dependency; separate roadmap issue. |
@@ -83,6 +87,21 @@ Junction guideline can guide fixtures and explanations, but normative
 requirements come from normative specification content. The UML model and XSD
 are authoritative structural cross-checks when available.
 
+The junction parser checks common-junction attributes against 1.9.0 section
+12.2. It checks virtual and crossing connections, groups, priorities, and
+controllers against verified 1.8.1 structures. Complete 1.9.0 changes for those
+records remain unknown. Signal and object models use the 1.9.0 chapters 14 and
+13. The parser does not enforce every type-dependent field, cardinality, enum
+value, or reference. See [tests/README.md](tests/README.md) for fixture limits.
+
+The published 1.9.0 specification and XSD disagree on two supported records.
+Signal `s`, `t`, and `zOffset` are required in the specification attribute table
+but optional in the XSD. Smooth outline `curveLocal` attributes `hdg` and
+`length` are optional in the specification but required in the XSD. The parser
+follows the specification tables and prose. It requires those signal
+coordinates and preserves omitted curve headings and lengths as `None`.
+Historical applicability of these differences remains unknown.
+
 ASAM's 1.9.0 introduction states a specific license grant for use and
 distribution of the standard text. Schema archives, UML models, examples, and
 other deliverables are separately listed artifacts; before copying any of
@@ -93,6 +112,10 @@ the package unless redistribution terms are clear.
 
 ## Sources
 
+- [ASAM OpenDRIVE 1.9.0 signal records](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.9.0/specification/14_signals/14_01_introduction.html)
+- [ASAM OpenDRIVE 1.9.0 object outlines](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.9.0/specification/13_objects/13_02_object_outline.html)
+- [ASAM OpenDRIVE 1.9.0 object markings](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.9.0/specification/13_objects/13_08_object_markings.html)
+- [ASAM OpenDRIVE 1.9.0 common junctions](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.9.0/specification/12_junctions/12_02_common_junctions.html)
 - [ASAM OpenDRIVE 1.9.0 specification and deliverables](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.9.0/specification/index.html)
 - [ASAM OpenDRIVE 1.9.0 introduction, conventions, and deliverables](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.9.0/specification/00_preface/00_introduction.html)
 - [ASAM OpenDRIVE 1.8.1 specification](https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/index.html)

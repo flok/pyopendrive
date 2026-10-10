@@ -12,27 +12,29 @@ implementation and the project's architecture documented in
 - `odr/api.py` is the loading facade. `odr/parser/xml.py` parses XML with the
   standard-library `ElementTree`; `odr/models/` contains data-only, immutable
   models. The parser and models remain separate.
-- The parser reads header revision, common header metadata, and road IDs,
-  lengths, junction references, and names. It handles namespace-prefixed XML
-  names and reports malformed XML or missing required structure through
+- The parser reads header revision and metadata, road identity, types, and
+  links, plan-view geometry, elevation and lateral profiles, and lane layers
+  with supported properties. Maps also contain junction topology, groups, and
+  static controllers. Roads contain signals, objects, their references, and
+  supported outline and marking records. It handles namespace-prefixed XML
+  element names and reports malformed XML or missing required structure through
   `OpenDriveParseError`. Unsupported content produces structured diagnostics
-  with element context. Full header metadata and most road fields remain
-  unimplemented.
-- Tests include a self-contained example, local examples, and the ASAM 1.9.0
-  examples/use-cases corpus. `tests/fetch_testdata.py` downloads the archive,
-  verifies its SHA-256, and extracts only `.xodr` files into ignored test data.
-  This is the first corpus tranche; older revisions and intentionally invalid
-  documents are not covered yet.
-- GitHub Actions tests pushes and pull requests on `ubuntu-latest`, fetching the
-  ASAM corpus before pytest. A separate `v<version>` tag workflow verifies the
-  package version, reruns those tests, builds a wheel, and publishes it to PyPI
-  through Trusted Publishing, then creates a GitHub release with generated
-  notes. The workflows do not yet run Ruff, test a Python-version matrix, or
-  build and install distributions for verification.
-- Road geometry, profiles, lanes, junctions, signals, objects, supplementary
-  elements, validation, and older-version-specific behavior remain planned;
-  the compatibility target and feature coverage are tracked in
-  [COMPATIBILITY.md](COMPATIBILITY.md).
+  with element context. Geometry evaluation and semantic validation remain
+  separate capabilities.
+- Tests include authored revision fixtures for 1.4 through 1.9, malformed
+  documents, focused parser behavior checks, and the ASAM 1.9.0 examples/use-cases
+  corpus. `tests/fetch_testdata.py` downloads the archive, verifies its SHA-256,
+  and extracts only `.xodr` files into ignored test data. Authored revision
+  fixtures exercise shared parsing behavior. Their historical schema validity
+  is unknown, and they do not establish complete older-version compatibility.
+- GitHub Actions runs Ruff and tests Python 3.12, 3.13, and 3.14 on pushes and
+  pull requests. Each Python version fetches the ASAM corpus, runs pytest, and
+  verifies installed wheel and source distributions. Project commands use the
+  committed lockfile. The `v<version>` tag workflow verifies the package version,
+  repeats these checks, publishes the wheel through PyPI Trusted Publishing,
+  and creates a GitHub release with generated notes.
+- Remaining network elements, validation, and complete older-version behavior
+  are tracked in [COMPATIBILITY.md](COMPATIBILITY.md).
 - The project targets Python 3.12+, has no runtime dependencies, and uses `uv`
   and Ruff.
 
@@ -41,26 +43,26 @@ implementation and the project's architecture documented in
 ### M0 — Scope and evidence
 
 1. [Define the OpenDRIVE version and feature support matrix](https://github.com/flok/pyopendrive/issues/1) — **complete**; supported revisions and feature groups are summarized in this roadmap.
-2. [Build a versioned example and fixture corpus](https://github.com/flok/pyopendrive/issues/2) — **in progress**; the 1.9.0 examples/use-cases tranche is fetched and exercised in tests, while older revisions and invalid fixtures remain outstanding.
+2. [Build a versioned example and fixture corpus](https://github.com/flok/pyopendrive/issues/2) — **in progress**; the official 1.9.0 corpus, authored 1.4 through 1.9 smoke fixtures, and invalid inputs are exercised. Official historical inputs and normative version-specific checks remain outstanding.
 
 ### M1 — Parser foundation
 
 3. [Stabilize the file-loading API and diagnostics](https://github.com/flok/pyopendrive/issues/3) — **complete**; paths and caller-owned streams share `OpenDriveMap.load(...)`, with contextual errors and recoverable diagnostics.
-4. [Set up CI and supported-Python verification](https://github.com/flok/pyopendrive/issues/4) — **in progress**; GitHub Actions runs the corpus fetch and pytest on pushes and pull requests, and version-tagged releases build and publish a wheel with generated GitHub release notes. Lint/format checks, a Python matrix, and distribution install checks remain outstanding.
+4. [Set up CI and supported-Python verification](https://github.com/flok/pyopendrive/issues/4) — **complete**; workflows include Ruff, Python 3.12 through 3.14, the official example corpus, and installed wheel and source-distribution checks. Version tags publish a wheel and generated release notes after verification.
 
 ### M2 — Core road model
 
-5. Parse document and complete header metadata; revision and common fields are implemented.
-6. Parse road metadata, types, and links; basic identity fields are implemented.
-7. Parse reference-line geometry.
-8. Parse elevation and lateral profiles.
-9. Parse lanes and lane properties.
+5. Parse document and header metadata — **complete** for the documented fields.
+6. Parse road metadata, types, and links — **partial**; identity, rules, type/speed records, and predecessor/successor references are implemented.
+7. Parse reference-line geometry — **complete**; line, arc, spiral, poly3, and paramPoly3 parameters are preserved.
+8. Parse elevation and lateral profiles — **complete** for the documented coefficient and surface records.
+9. Parse lanes and lane properties — **partial**; layers, sections, links, widths/borders, road marks, and common properties are implemented. Unsupported nested content is diagnosed.
 
 ### M3 — Network features
 
-10. Parse junctions and lane connections.
-11. Parse signals and controllers.
-12. Parse road objects and object references.
+10. Parse junctions and lane connections — **partial**; connections, lane links, virtual endpoints, crossing road sections, priorities, and groups are implemented. Cross paths, junction geometry, and surfaces remain unsupported.
+11. Parse signals and controllers — **partial**; signals, references, lane validity, dependencies, links, and static controller mappings are implemented. Signal semantics and alternate position records remain unsupported.
+12. Parse road objects and object references — **partial**; object attributes, references, road/local outline corners, smooth outline curves, and markings are implemented. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported.
 13. Parse supplementary network elements.
 14. Preserve and report user-defined extensions.
 15. Resolve included OpenDRIVE files.
@@ -80,10 +82,10 @@ implementation and the project's architecture documented in
 
 ## Suggested order
 
-Expand fixture coverage and complete the CI checks, then build the core model
-in small parser/model slices, followed by network elements and older-revision
-compatibility. Documentation can track implementation; prepare the stable
-release after the supported surface is settled.
+Finish the remaining lane and network records in small parser/model slices,
+then expand normative older-revision compatibility evidence and optional
+validation. Keep fixture assertions and documented limits synchronized with
+each slice. Prepare the stable release after the supported public API is settled.
 
 ## Scope boundaries
 
