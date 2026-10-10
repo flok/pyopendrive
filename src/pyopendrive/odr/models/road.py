@@ -4,7 +4,9 @@ from dataclasses import dataclass
 
 from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.models.lanes import LaneLayer
+from pyopendrive.odr.models.objects import ObjectReference, RoadObject
 from pyopendrive.odr.models.profiles import RoadProfiles
+from pyopendrive.odr.models.signals import Signal, SignalReference
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,3 +46,7 @@ class Road:
     plan_view: tuple[GeometrySegment, ...] = ()
     profiles: RoadProfiles = RoadProfiles()
     lane_layers: tuple[LaneLayer, ...] = ()
+    signals: tuple[Signal, ...] = ()
+    signal_references: tuple[SignalReference, ...] = ()
+    objects: tuple[RoadObject, ...] = ()
+    object_references: tuple[ObjectReference, ...] = ()

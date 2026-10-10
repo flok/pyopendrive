@@ -29,7 +29,14 @@ from pyopendrive.odr.parser.junctions import (
     parse_junction_group,
 )
 from pyopendrive.odr.parser.lanes import LaneParseError, parse_lane_layers
+from pyopendrive.odr.parser.objects import OBJECT_RULES, parse_objects
 from pyopendrive.odr.parser.profiles import ProfileParseError, parse_road_profiles
+from pyopendrive.odr.parser.signals import (
+    SIGNAL_RULES,
+    RoadRecordParseError,
+    parse_signals,
+    record_diagnostics,
+)
 
 type XmlSource = str | Path | IO[bytes] | IO[str]
 
@@ -139,6 +146,12 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
     except LaneParseError as error:
         raise OpenDriveParseError(error.message, element=error.element) from error
 
+    try:
+        signals, signal_references = parse_signals(element, path)
+        objects, object_references = parse_objects(element, path)
+    except RoadRecordParseError as error:
+        raise OpenDriveParseError(error.message, element=error.element) from error
+
     return Road(
         id=road_id,
         length=length,
@@ -155,6 +168,10 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
         plan_view=geometries,
         profiles=profiles,
         lane_layers=lane_layers,
+        signals=signals,
+        signal_references=signal_references,
+        objects=objects,
+        object_references=object_references,
     )
 
 
@@ -487,6 +504,15 @@ def _collect_diagnostics(
                         _unsupported_element(
                             record, f"{path}/{name}/{record_name}", diagnostics
                         )
+            elif name in {"signals", "objects"}:
+                diagnostics.extend(
+                    record_diagnostics(
+                        child,
+                        f"{path}/{name}",
+                        SIGNAL_RULES if name == "signals" else OBJECT_RULES,
+                        revision,
+                    )
+                )
             elif name == "lanes":
                 _lane_diagnostics(child, f"{path}/lanes", diagnostics)
             else:
