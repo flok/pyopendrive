@@ -54,7 +54,7 @@ claim that every detail has already been implemented.
 | Plan-view geometry | Supported | Supported | Parses ordered line, arc, spiral, poly3, and paramPoly3 segments while preserving source parameters; curve evaluation remains separate. |
 | Elevation, superelevation, shape, cross-section profiles | Supported | Supported | Parses revision-aware coefficient records and cross-section surfaces; evaluating geometry is outside the initial target. |
 | Lanes, lane links, road marks, access, speeds, widths | Partial | Supported | Parses layers, sections, groups, links, widths/borders, road marks, and common properties. Lane rules read the required `value` attribute. Unsupported nested children and attributes are diagnosed, including qualified vendor attributes. Explicit road-mark lines, sway, line color, and unknown payload preservation remain unsupported. |
-| Junctions, connections, junction groups, controllers | Partial | Supported | Parses identities, connections and lane links, virtual endpoints, crossing road sections, priorities, groups, and static controller mappings. Cross paths, junction geometry, surfaces, type-dependent cardinalities, and topology validation remain unsupported. |
+| Junctions, connections, junction groups, controllers | Supported with limits | Supported | Parses the existing topology records plus cross paths, the line reference geometry, boundary segments, elevation-grid source lists, and CRG metadata. `validate_junctions()` reports unresolved road and junction IDs on demand. Geometry evaluation, CRG file loading, lane-level topology validation, and unverified 1.9.0 type/cardinality rules remain unsupported. |
 | Signals and lane validity | Partial | Supported | Parses signals/references, dependencies, signal links, lane validity, and temporary/invalidated source state. Signal semantics and alternate position records remain unsupported and are diagnosed. |
 | Road objects and object outlines/markings | Partial | Supported | Parses object/reference attributes, road/local outline corners, smooth line/arc/paramPoly3 curves, and object/outline markings. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported and are diagnosed. |
 | Rail tracks, switches, tram, and stations | Planned | Supported | Static network elements only. |
@@ -88,11 +88,14 @@ requirements come from normative specification content. The UML model and XSD
 are authoritative structural cross-checks when available.
 
 The junction parser checks common-junction attributes against 1.9.0 section
-12.2. It checks virtual and crossing connections, groups, priorities, and
-controllers against verified 1.8.1 structures. Complete 1.9.0 changes for those
-records remain unknown. Signal and object models use the 1.9.0 chapters 14 and
-13. The parser does not enforce every type-dependent field, cardinality, enum
-value, or reference. See [tests/README.md](tests/README.md) for fixture limits.
+12.2. Cross paths, reference lines, boundaries, elevation grids, and CRG source
+metadata are modeled from the verified 1.8.1 structures. Their complete 1.9.0
+changes remain unknown. Signal and object models use the 1.9.0 chapters 14 and
+13. `validate_junctions()` checks selected road and junction IDs without
+changing load behavior; it does not validate lane endpoints, geometry, or CRG
+payloads. Type-dependent requirements not verified against the applicable
+revision remain unchecked. See [tests/README.md](tests/README.md) for fixture
+limits.
 
 The published 1.9.0 specification and XSD disagree on two supported records.
 Signal `s`, `t`, and `zOffset` are required in the specification attribute table
