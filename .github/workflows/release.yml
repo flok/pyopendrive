@@ -11,15 +11,28 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          python-version: ${{ matrix.python-version }}
       - name: Verify tag matches package version
         run: test "${GITHUB_REF_NAME}" = "v$(uv version --short)"
       - name: Run tests
-        run: uv run python tests/fetch_testdata.py && uv run pytest
+        run: uv run --locked python tests/fetch_testdata.py && uv run --locked pytest
+      - name: Check lint and formatting
+        run: uv run --locked ruff check . && uv run --locked ruff format --check .
+      - name: Build distributions
+        run: uv build
+      - name: Verify installed wheel
+        run: uv run --isolated --no-project --with dist/*.whl python tests/check_distribution.py
+      - name: Verify installed source distribution
+        run: uv run --isolated --no-project --with dist/*.tar.gz python tests/check_distribution.py
 
   build:
     needs: test
@@ -27,6 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
       - name: Build wheel
         run: uv build --wheel
       - uses: actions/upload-artifact@v7

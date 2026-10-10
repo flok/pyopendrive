@@ -210,7 +210,6 @@ def record_diagnostics(
     rules: dict[str, tuple[set[str], set[str]]],
     revision: int,
 ) -> tuple[OpenDriveDiagnostic, ...]:
-    """Report every unsupported attribute/child in the supported record tree."""
     diagnostics: list[OpenDriveDiagnostic] = []
     name = local_name(element.tag)
     attributes, allowed = rules[name]

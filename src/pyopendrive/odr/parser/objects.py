@@ -1,5 +1,3 @@
-"""Convert object positions, polygon/smooth outlines, and marking records."""
-
 from xml.etree.ElementTree import Element
 
 from pyopendrive.odr.models.geometry import Arc, Line, ParamPoly3
