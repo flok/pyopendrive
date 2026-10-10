@@ -70,10 +70,11 @@ records, road marks, and supported lane properties. Model classes do not depend
 on XML elements. Maps expose `junctions`, `junction_groups`, and `controllers`.
 Roads expose `signals`, `signal_references`, `objects`, and `object_references`.
 These ordered tuple collections contain source records. Junction references
-remain IDs; `validate_junctions(map)` optionally reports unresolved road and
-junction IDs without changing load behavior. Junction boundary and elevation
-grid values preserve source metadata; CRG files are not opened. Unsupported
-network children and attributes produce diagnostics.
+remain IDs; `validate_junctions(map)` optionally checks selected structure,
+road and junction references, and referenced lane IDs without changing load
+behavior. Junction boundary and elevation-grid values preserve source metadata;
+CRG files are not opened. Unsupported network children and attributes produce
+diagnostics.
 Geometry values preserve source parameters; geometry
 calculation and coordinate transforms remain separate. The header contains
 major/minor revision only, so patch releases cannot be inferred.
@@ -86,9 +87,9 @@ major/minor revision only, so patch releases cannot be inferred.
 - Preserve source values; do not silently evaluate or normalize them.
 - Keep optional validation separate from the default loading path.
 - Loading checks selected required attributes and numeric values. It does not
-  enforce unverified type-dependent requirements or lane-level topology.
-  Junction semantic reference checks remain opt-in; signal and object parsing
-  remains partial as documented in the compatibility matrix.
+  enforce junction semantics during loading. Junction type and reference checks
+  remain opt-in; signal and object parsing remains partial as documented in
+  the compatibility matrix.
 
 ## Project tooling
 

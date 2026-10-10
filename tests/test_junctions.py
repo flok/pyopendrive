@@ -219,12 +219,9 @@ def test_junction_reference_validation_is_opt_in_and_keeps_source_ids() -> None:
       </crossPath></junction>""")
     assert road_map.diagnostics == ()
     assert road_map.junctions[0].cross_paths[0].crossing_road == "missing"
-    assert [diagnostic.code for diagnostic in validate_junctions(road_map)] == [
-        "unresolved-road",
-        "unresolved-road",
-        "unresolved-road",
-        "unresolved-road",
-    ]
+    assert [item.code for item in validate_junctions(road_map)].count(
+        "unresolved-road"
+    ) == 4
 
 
 def test_junction_boundary_elevation_grid_and_crg_metadata() -> None:
@@ -249,3 +246,34 @@ def test_junction_boundary_elevation_grid_and_crg_metadata() -> None:
     assert junction.elevation_grid.elevations[0].center == (1.0, 2.0)
     assert junction.crgs[0].file == "surface.crg"
     assert junction.crgs[0].z_scale == 1.2
+
+
+def test_junction_validator_checks_lane_ids_and_type_requirements() -> None:
+    road_map = load("""
+      <road id="in" length="10" junction="-1"><lanes><laneSection s="0">
+        <left><lane id="1"/></left><center><lane id="0"/></center>
+      </laneSection></lanes></road>
+      <road id="connect" length="10" junction="j"><lanes><laneSection s="0">
+        <left><lane id="2"/></left><center><lane id="0"/></center>
+      </laneSection></lanes></road>
+      <junction id="j"><connection id="c" incomingRoad="in"
+        connectingRoad="connect" contactPoint="start">
+        <laneLink from="7" to="2"/>
+      </connection></junction>
+      <junction id="virtual" type="virtual"/>
+    """)
+    observations = [(item.code, item.element) for item in validate_junctions(road_map)]
+    assert (
+        "unresolved-lane",
+        "/OpenDRIVE/junction[@id='j']/connection[@id='c']/@from",
+    ) in observations
+    assert sum(code == "missing-junction-field" for code, _ in observations) == 4
+
+
+def test_junction_validator_reports_known_type_cardinalities() -> None:
+    road_map = load('<junction id="cross" type="crossing"/>')
+    diagnostics = validate_junctions(road_map)
+    assert any(
+        item.code == "junction-cardinality" and "roadSection" in item.message
+        for item in diagnostics
+    )
