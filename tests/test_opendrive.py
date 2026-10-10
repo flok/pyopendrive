@@ -185,7 +185,7 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
 <OpenDRIVE extension="value">
   <header revMajor="1" revMinor="9" unexpected="5"><geoReference/></header>
   <road id="1" length="12.5" junction="-1"><planView/></road>
-  <controller id="7"/>
+  <station id="7"/>
 </OpenDRIVE>
 """
     )
@@ -205,8 +205,8 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
         ),
         OpenDriveDiagnostic(
             "unsupported-element",
-            "Element 'controller' is not currently parsed.",
-            "/OpenDRIVE/controller",
+            "Element 'station' is not currently parsed.",
+            "/OpenDRIVE/station",
         ),
     )
 

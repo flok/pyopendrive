@@ -233,9 +233,8 @@ def _parse_road_mark(element: ElementTree.Element, path: str) -> LaneRoadMark:
 
 def _parse_rule(element: ElementTree.Element, path: str) -> LaneRule:
     s_offset = _required_float(element, "sOffset", path)
-    if element.text is None:
-        raise LaneParseError("Rule has no value.", element=path)
-    return LaneRule(s_offset=s_offset, value=element.text)
+    value = _required_attribute(element, "value", path)
+    return LaneRule(s_offset=s_offset, value=value)
 
 
 def _required_attribute(element: ElementTree.Element, name: str, path: str) -> str:
