@@ -22,6 +22,12 @@ from pyopendrive.odr.models import (
     SignalRegulation,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
+from pyopendrive.odr.parser.junctions import (
+    JunctionParseError,
+    parse_controller,
+    parse_junction,
+    parse_junction_group,
+)
 from pyopendrive.odr.parser.lanes import LaneParseError, parse_lane_layers
 from pyopendrive.odr.parser.profiles import ProfileParseError, parse_road_profiles
 
@@ -67,6 +73,25 @@ def parse(source: XmlSource) -> OpenDriveMap:
     roads = tuple(
         _parse_road(element, format_version.minor) for element in road_elements
     )
+    try:
+        junctions = tuple(
+            parse_junction(child)
+            for child in root
+            if _local_name(child.tag) == "junction"
+        )
+        junction_groups = tuple(
+            parse_junction_group(child)
+            for child in root
+            if _local_name(child.tag) == "junctionGroup"
+        )
+        controllers = tuple(
+            parse_controller(child)
+            for child in root
+            if _local_name(child.tag) == "controller"
+        )
+    except JunctionParseError as error:
+        raise OpenDriveParseError(error.message, element=error.element) from error
+
     diagnostics = _collect_diagnostics(
         root, header_element, road_elements, format_version.minor
     )
@@ -75,6 +100,9 @@ def parse(source: XmlSource) -> OpenDriveMap:
         header=header,
         roads=roads,
         diagnostics=diagnostics,
+        junctions=junctions,
+        junction_groups=junction_groups,
+        controllers=controllers,
     )
 
 
@@ -466,9 +494,77 @@ def _collect_diagnostics(
 
     for child in root:
         name = _local_name(child.tag)
-        if name not in {"header", "road"}:
+        if name in {"junction", "junctionGroup", "controller"}:
+            path = f"/OpenDRIVE/{name}[@id='{child.get('id', '?')}']"
+            _junction_diagnostics(child, path, diagnostics)
+        elif name not in {"header", "road"}:
             _unsupported_element(child, f"/OpenDRIVE/{name}", diagnostics)
     return tuple(diagnostics)
+
+
+def _junction_diagnostics(
+    element: ElementTree.Element,
+    path: str,
+    diagnostics: list[OpenDriveDiagnostic],
+) -> None:
+    attributes = {
+        "junction": {"id", "name", "type", "mainRoad", "orientation", "sStart", "sEnd"},
+        "connection": {
+            "id",
+            "incomingRoad",
+            "connectingRoad",
+            "linkedRoad",
+            "contactPoint",
+            "type",
+        },
+        "laneLink": {"from", "to", "overlapZone"},
+        "predecessor": {
+            "elementType",
+            "elementId",
+            "elementS",
+            "elementDir",
+            "contactPoint",
+        },
+        "successor": {
+            "elementType",
+            "elementId",
+            "elementS",
+            "elementDir",
+            "contactPoint",
+        },
+        "priority": {"high", "low"},
+        "controller": {"id", "name", "sequence", "type"},
+        "control": {"signalId", "type"},
+        "roadSection": {"id", "roadId", "sStart", "sEnd"},
+        "junctionGroup": {"id", "name", "type"},
+        "junctionReference": {"junction"},
+    }
+    children = {
+        "junction": {"connection", "priority", "controller", "roadSection"},
+        "connection": {"laneLink", "predecessor", "successor"},
+        "junctionGroup": {"junctionReference"},
+        "controller": {"control"}
+        if path.startswith("/OpenDRIVE/controller[")
+        else set(),
+    }
+    name = _local_name(element.tag)
+    supported_attributes = attributes[name]
+    if name == "controller":
+        supported_attributes = (
+            {"id", "name", "sequence"}
+            if path.startswith("/OpenDRIVE/controller[")
+            else {"id", "sequence", "type"}
+        )
+    _unsupported_attributes(element, supported_attributes, path, diagnostics)
+    for child in element:
+        child_name = _local_name(child.tag)
+        child_path = f"{path}/{child_name}"
+        if child.get("id") is not None:
+            child_path += f"[@id='{child.get('id')}']"
+        if child_name in children.get(name, set()):
+            _junction_diagnostics(child, child_path, diagnostics)
+        else:
+            _unsupported_element(child, child_path, diagnostics)
 
 
 def _header_child_diagnostics(
