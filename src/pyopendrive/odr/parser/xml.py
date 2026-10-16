@@ -75,6 +75,13 @@ def parse(source: XmlSource) -> OpenDriveMap:
         major=_required_int(header_element, "revMajor"),
         minor=_required_int(header_element, "revMinor"),
     )
+    if format_version.major != 1 or not 4 <= format_version.minor <= 9:
+        raise OpenDriveParseError(
+            "Unsupported OpenDRIVE revision "
+            f"{format_version.major}.{format_version.minor}; "
+            "supported revisions are 1.4 through 1.9.",
+            element="/OpenDRIVE/header",
+        )
     header = _parse_header(header_element)
     road_elements = [element for element in root if _local_name(element.tag) == "road"]
     roads = tuple(

@@ -12,7 +12,8 @@ The loader does not evaluate curves or validate documents
 against the ASAM XSD schemas.
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for precise feature coverage and
-version limits, and [ROADMAP.md](ROADMAP.md) for remaining work.
+version limits. Header revisions outside 1.4 through 1.9 are rejected.
+See [ROADMAP.md](ROADMAP.md) for remaining work.
 
 ## Usage
 
