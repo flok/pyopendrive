@@ -61,6 +61,8 @@ from pyopendrive.odr.models import (
     PlatformSegment,
     Poly3,
     PolynomialProfile,
+    RailroadSwitch,
+    RailroadTrack,
     RegulationSemantic,
     Road,
     RoadCrg,
@@ -80,6 +82,7 @@ from pyopendrive.odr.models import (
     Station,
     SurfaceCoefficients,
     SurfaceStrip,
+    SwitchPartner,
 )
 from pyopendrive.odr.parser import OpenDriveParseError
 
@@ -142,6 +145,8 @@ __all__ = [
     "ParamPoly3",
     "Platform",
     "PlatformSegment",
+    "RailroadSwitch",
+    "RailroadTrack",
     "Poly3",
     "PolynomialProfile",
     "RegulationSemantic",
@@ -161,6 +166,7 @@ __all__ = [
     "SignalRegulation",
     "Spiral",
     "Station",
+    "SwitchPartner",
     "SurfaceCoefficients",
     "SurfaceStrip",
     "validate_junctions",

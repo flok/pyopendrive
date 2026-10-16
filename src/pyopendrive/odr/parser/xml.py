@@ -15,6 +15,8 @@ from pyopendrive.odr.models import (
     OpenDriveVersion,
     Platform,
     PlatformSegment,
+    RailroadSwitch,
+    RailroadTrack,
     RegulationSemantic,
     Road,
     RoadCrg,
@@ -24,6 +26,7 @@ from pyopendrive.odr.models import (
     RoadType,
     SignalRegulation,
     Station,
+    SwitchPartner,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.parser.junctions import (
@@ -222,6 +225,7 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
         objects=objects,
         object_references=object_references,
         crgs=_parse_road_crgs(element, path, revision),
+        switches=_parse_road_switches(element, path, revision),
     )
 
 
@@ -301,6 +305,66 @@ def _parse_road_crgs(
             )
         )
     return tuple(crgs)
+
+
+def _parse_road_switches(
+    road: ElementTree.Element, path: str, revision: int
+) -> tuple[RailroadSwitch, ...]:
+    if revision < 7:
+        return ()
+    railroad = next(
+        (child for child in road if _local_name(child.tag) == "railroad"), None
+    )
+    if railroad is None:
+        return ()
+
+    switches = []
+    for switch in railroad:
+        if _local_name(switch.tag) != "switch":
+            continue
+        switch_path = f"{path}/railroad/switch[@id='{switch.get('id', '?')}']"
+
+        def track(
+            switch_element: ElementTree.Element, path: str, name: str
+        ) -> RailroadTrack:
+            element = next(
+                (child for child in switch_element if _local_name(child.tag) == name),
+                None,
+            )
+            if element is None:
+                raise OpenDriveParseError(
+                    f"Switch is missing required '{name}' element.",
+                    element=path,
+                )
+            track_path = f"{path}/{name}"
+            return RailroadTrack(
+                _required_string(element, "id", track_path),
+                _required_float(element, "s", track_path),
+                _required_string(element, "dir", track_path),
+            )
+
+        partner_element = next(
+            (child for child in switch if _local_name(child.tag) == "partner"), None
+        )
+        partner = (
+            SwitchPartner(
+                _required_string(partner_element, "id", f"{switch_path}/partner"),
+                partner_element.get("name"),
+            )
+            if partner_element is not None
+            else None
+        )
+        switches.append(
+            RailroadSwitch(
+                id=_required_string(switch, "id", switch_path),
+                name=_required_string(switch, "name", switch_path),
+                position=_required_string(switch, "position", switch_path),
+                main_track=track(switch, switch_path, "mainTrack"),
+                side_track=track(switch, switch_path, "sideTrack"),
+                partner=partner,
+            )
+        )
+    return tuple(switches)
 
 
 def _parse_road_link(
@@ -667,6 +731,33 @@ def _collect_diagnostics(
                         _unsupported_children(crg, crg_path, diagnostics)
                     else:
                         _unsupported_element(crg, crg_path, diagnostics)
+            elif name == "railroad" and revision >= 7:
+                railroad_path = f"{path}/railroad"
+                _unsupported_attributes(child, set(), railroad_path, diagnostics)
+                for switch in child:
+                    switch_name = _local_name(switch.tag)
+                    switch_path = f"{railroad_path}/{switch_name}"
+                    if switch_name != "switch":
+                        _unsupported_element(switch, switch_path, diagnostics)
+                        continue
+                    _unsupported_attributes(
+                        switch, {"id", "name", "position"}, switch_path, diagnostics
+                    )
+                    for record in switch:
+                        record_name = _local_name(record.tag)
+                        record_path = f"{switch_path}/{record_name}"
+                        if record_name in {"mainTrack", "sideTrack"}:
+                            _unsupported_attributes(
+                                record, {"id", "s", "dir"}, record_path, diagnostics
+                            )
+                            _unsupported_children(record, record_path, diagnostics)
+                        elif record_name == "partner":
+                            _unsupported_attributes(
+                                record, {"id", "name"}, record_path, diagnostics
+                            )
+                            _unsupported_children(record, record_path, diagnostics)
+                        else:
+                            _unsupported_element(record, record_path, diagnostics)
             else:
                 _unsupported_element(child, f"{path}/{name}", diagnostics)
 

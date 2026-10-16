@@ -38,9 +38,10 @@ their payloads.
 fixture. Its record shape follows ASAM OpenDRIVE 1.8.1 section 10.6 and the
 1.9.0 global-mode coordinate offsets; no external CRG payload is included.
 
-`fixtures/network/railroad-station.xodr` is an independently authored station
-fixture. Station, platform, and segment structures follow ASAM OpenDRIVE 1.8.1
-section 15.4; the railway elements are static metadata only.
+`fixtures/network/railroad-station.xodr` is an independently authored fixture
+for station/platform segments and switch track references. The structures
+follow ASAM OpenDRIVE 1.8.1 sections 15.3–15.4; railway elements are static
+metadata only.
 
 Lane-rule checks use the required `value` attribute specified in
 [ASAM OpenDRIVE 1.8.1 section 11.9][lane-rules]. Road-mark gaps are checked
@@ -87,3 +88,4 @@ complete coverage of revision differences remain future work.
 [road-marks]: https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/11_lanes/11_08_road_markings.html
 [road-crg]: https://simulation.pages.asam.net/opendrive-group/opendrive-antora-gen/ASAM_OpenDRIVE_Specification/v1.9.0/specification/10_roads/10_06_road_surface.html
 [railroad-stations]: https://simulation.pages.asam.net/opendrive-group/opendrive-antora-gen/ASAM_OpenDRIVE_Specification/v1.8.1/specification/15_railroads/15_04_stations.html
+[railroad-switches]: https://simulation.pages.asam.net/opendrive-group/opendrive-antora-gen/ASAM_OpenDRIVE_Specification/v1.8.1/specification/15_railroads/15_03_switches.html

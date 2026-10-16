@@ -10,6 +10,13 @@
         <center><lane id="0" type="rail" level="false"/></center>
       </laneSection>
     </lanes>
+    <railroad>
+      <switch id="switch-1" name="West turnout" position="dynamic">
+        <mainTrack id="rail" s="12" dir="+"/>
+        <sideTrack id="siding" s="0" dir="+"/>
+        <partner id="switch-2" name="East turnout"/>
+      </switch>
+    </railroad>
   </road>
   <station id="station-1" name="Central" type="tram">
     <platform id="platform-1" name="West">

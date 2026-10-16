@@ -4,6 +4,29 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
+class RailroadTrack:
+    id: str
+    s: float
+    direction: str
+
+
+@dataclass(frozen=True, slots=True)
+class SwitchPartner:
+    id: str
+    name: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RailroadSwitch:
+    id: str
+    name: str
+    position: str
+    main_track: RailroadTrack
+    side_track: RailroadTrack
+    partner: SwitchPartner | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class PlatformSegment:
     road_id: str
     s_start: float

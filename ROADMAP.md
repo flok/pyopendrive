@@ -64,8 +64,8 @@ implementation and the project's architecture documented in
 11. Parse signals and controllers — **partial**; signals, references, lane validity, dependencies, links, and static controller mappings are implemented. Signal semantics and alternate position records remain unsupported.
 12. Parse road objects and object references — **partial**; object attributes, references, road/local outline corners, smooth outline curves, and markings are implemented. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported.
 13. Parse supplementary network elements — partial; junction groups, railway
-    stations/platform segments, and road CRG references are parsed. Switches,
-    additional rail metadata, and CRG payload evaluation remain unsupported.
+    stations/platform segments, railway switches, and road CRG references are
+    parsed. Additional rail metadata and CRG payload evaluation remain unsupported.
 14. Preserve and report user-defined extensions.
 15. Resolve included OpenDRIVE files.
 16. Read gzip-compressed `.xodrz` files.

@@ -6,6 +6,7 @@ from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.models.lanes import LaneLayer
 from pyopendrive.odr.models.objects import ObjectReference, RoadObject
 from pyopendrive.odr.models.profiles import RoadProfiles
+from pyopendrive.odr.models.railroads import RailroadSwitch
 from pyopendrive.odr.models.signals import Signal, SignalReference
 
 
@@ -68,3 +69,4 @@ class Road:
     objects: tuple[RoadObject, ...] = ()
     object_references: tuple[ObjectReference, ...] = ()
     crgs: tuple[RoadCrg, ...] = ()
+    switches: tuple[RailroadSwitch, ...] = ()

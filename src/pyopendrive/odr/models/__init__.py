@@ -77,7 +77,14 @@ from pyopendrive.odr.models.profiles import (
     SurfaceCoefficients,
     SurfaceStrip,
 )
-from pyopendrive.odr.models.railroads import Platform, PlatformSegment, Station
+from pyopendrive.odr.models.railroads import (
+    Platform,
+    PlatformSegment,
+    RailroadSwitch,
+    RailroadTrack,
+    Station,
+    SwitchPartner,
+)
 from pyopendrive.odr.models.road import Road, RoadCrg, RoadLink, RoadSpeed, RoadType
 from pyopendrive.odr.models.signals import (
     LaneValidity,
@@ -147,6 +154,8 @@ __all__ = [
     "PolynomialProfile",
     "Platform",
     "PlatformSegment",
+    "RailroadSwitch",
+    "RailroadTrack",
     "RegulationSemantic",
     "Road",
     "RoadCrg",
@@ -164,6 +173,7 @@ __all__ = [
     "SignalRegulation",
     "Spiral",
     "Station",
+    "SwitchPartner",
     "SurfaceCoefficients",
     "SurfaceStrip",
 ]
