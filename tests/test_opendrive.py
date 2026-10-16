@@ -1,6 +1,7 @@
 """Small examples of testing the public loading API."""
 
 from io import BytesIO, StringIO
+from pathlib import Path
 
 import pytest
 
@@ -14,6 +15,7 @@ from pyopendrive import (
     OpenDriveParseError,
     OpenDriveVersion,
     RegulationSemantic,
+    RoadCrg,
     RoadRegulation,
     SignalRegulation,
 )
@@ -189,7 +191,6 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
 </OpenDRIVE>
 """
     )
-
     diagnostics = OpenDriveMap.load(source).diagnostics
 
     assert diagnostics == (
@@ -209,6 +210,28 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
             "/OpenDRIVE/station",
         ),
     )
+
+
+def test_road_crg_metadata_preserves_global_offsets() -> None:
+    source = Path(__file__).parent / "fixtures/network/road-crg.xodr"
+
+    road_map = OpenDriveMap.load(source)
+
+    assert road_map.roads[0].crgs == (
+        RoadCrg(
+            file="surface.crg",
+            mode="global",
+            orientation="same",
+            s_start=0,
+            s_end=20,
+            h_offset=0.25,
+            x_offset=10,
+            y_offset=15,
+            z_offset=1.5,
+            z_scale=2,
+        ),
+    )
+    assert road_map.diagnostics == ()
 
 
 def test_parses_road_types_and_links() -> None:

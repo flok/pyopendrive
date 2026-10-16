@@ -15,6 +15,7 @@ from pyopendrive.odr.models import (
     OpenDriveVersion,
     RegulationSemantic,
     Road,
+    RoadCrg,
     RoadLink,
     RoadRegulation,
     RoadSpeed,
@@ -172,7 +173,86 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
         signal_references=signal_references,
         objects=objects,
         object_references=object_references,
+        crgs=_parse_road_crgs(element, path, revision),
     )
+
+
+def _parse_road_crgs(
+    road: ElementTree.Element, path: str, revision: int
+) -> tuple[RoadCrg, ...]:
+    surface = next(
+        (child for child in road if _local_name(child.tag) == "surface"), None
+    )
+    if surface is None:
+        return ()
+
+    crgs = []
+    for index, element in enumerate(surface):
+        if _local_name(element.tag) != "CRG":
+            continue
+        crg_path = f"{path}/surface/CRG[{index}]"
+        file = element.get("file")
+        mode = element.get("mode")
+        orientation = element.get("orientation")
+        if file is None or mode is None or orientation is None:
+            missing = next(
+                name
+                for name, value in (
+                    ("file", file),
+                    ("mode", mode),
+                    ("orientation", orientation),
+                )
+                if value is None
+            )
+            raise OpenDriveParseError(
+                f"CRG is missing required '{missing}' attribute.", element=crg_path
+            )
+        crgs.append(
+            RoadCrg(
+                file=file,
+                mode=mode,
+                orientation=orientation,
+                s_start=_float_attribute(element, "sStart", crg_path),
+                s_end=_float_attribute(element, "sEnd", crg_path),
+                purpose=element.get("purpose"),
+                h_offset=(
+                    _float_attribute(element, "hOffset", crg_path)
+                    if "hOffset" in element.attrib
+                    else None
+                ),
+                s_offset=(
+                    _float_attribute(element, "sOffset", crg_path)
+                    if "sOffset" in element.attrib
+                    else None
+                ),
+                t_offset=(
+                    _float_attribute(element, "tOffset", crg_path)
+                    if "tOffset" in element.attrib
+                    else None
+                ),
+                x_offset=(
+                    _float_attribute(element, "xOffset", crg_path)
+                    if revision >= 9 and "xOffset" in element.attrib
+                    else None
+                ),
+                y_offset=(
+                    _float_attribute(element, "yOffset", crg_path)
+                    if revision >= 9 and "yOffset" in element.attrib
+                    else None
+                ),
+                z_offset=(
+                    _float_attribute(element, "zOffset", crg_path)
+                    if "zOffset" in element.attrib
+                    else None
+                ),
+                z_scale=(
+                    _float_attribute(element, "zScale", crg_path)
+                    if "zScale" in element.attrib
+                    else None
+                ),
+            )
+        )
+    return tuple(crgs)
 
 
 def _parse_road_link(
@@ -515,6 +595,30 @@ def _collect_diagnostics(
                 )
             elif name == "lanes":
                 _lane_diagnostics(child, f"{path}/lanes", diagnostics)
+            elif name == "surface":
+                for index, crg in enumerate(child):
+                    crg_name = _local_name(crg.tag)
+                    crg_path = f"{path}/surface/{crg_name}[{index}]"
+                    if crg_name == "CRG":
+                        attributes = {
+                            "file",
+                            "hOffset",
+                            "mode",
+                            "orientation",
+                            "purpose",
+                            "sEnd",
+                            "sOffset",
+                            "sStart",
+                            "tOffset",
+                            "zOffset",
+                            "zScale",
+                        }
+                        if revision >= 9:
+                            attributes.update({"xOffset", "yOffset"})
+                        _unsupported_attributes(crg, attributes, crg_path, diagnostics)
+                        _unsupported_children(crg, crg_path, diagnostics)
+                    else:
+                        _unsupported_element(crg, crg_path, diagnostics)
             else:
                 _unsupported_element(child, f"{path}/{name}", diagnostics)
 

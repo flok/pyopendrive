@@ -34,6 +34,23 @@ class RoadLink:
 
 
 @dataclass(frozen=True, slots=True)
+class RoadCrg:
+    file: str
+    mode: str
+    orientation: str
+    s_start: float
+    s_end: float
+    purpose: str | None = None
+    h_offset: float | None = None
+    s_offset: float | None = None
+    t_offset: float | None = None
+    x_offset: float | None = None
+    y_offset: float | None = None
+    z_offset: float | None = None
+    z_scale: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class Road:
     id: str
     length: float
@@ -50,3 +67,4 @@ class Road:
     signal_references: tuple[SignalReference, ...] = ()
     objects: tuple[RoadObject, ...] = ()
     object_references: tuple[ObjectReference, ...] = ()
+    crgs: tuple[RoadCrg, ...] = ()

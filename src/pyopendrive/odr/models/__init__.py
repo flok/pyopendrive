@@ -77,7 +77,7 @@ from pyopendrive.odr.models.profiles import (
     SurfaceCoefficients,
     SurfaceStrip,
 )
-from pyopendrive.odr.models.road import Road, RoadLink, RoadSpeed, RoadType
+from pyopendrive.odr.models.road import Road, RoadCrg, RoadLink, RoadSpeed, RoadType
 from pyopendrive.odr.models.signals import (
     LaneValidity,
     Signal,
@@ -146,6 +146,7 @@ __all__ = [
     "PolynomialProfile",
     "RegulationSemantic",
     "Road",
+    "RoadCrg",
     "RoadLink",
     "RoadObject",
     "RoadProfiles",

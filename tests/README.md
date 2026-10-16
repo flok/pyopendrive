@@ -34,6 +34,10 @@ is designed to exercise diagnostics and does not claim schema validity.
 Unsupported subtrees produce one diagnostic at their root. The parser discards
 their payloads.
 
+`fixtures/network/road-crg.xodr` is an independently authored CRG-reference
+fixture. Its record shape follows ASAM OpenDRIVE 1.8.1 section 10.6 and the
+1.9.0 global-mode coordinate offsets; no external CRG payload is included.
+
 Lane-rule checks use the required `value` attribute specified in
 [ASAM OpenDRIVE 1.8.1 section 11.9][lane-rules]. Road-mark gaps are checked
 against [ASAM OpenDRIVE 1.8.1 section 11.8][road-marks]. These citations confirm
@@ -77,3 +81,4 @@ complete coverage of revision differences remain future work.
 
 [lane-rules]: https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/11_lanes/11_09_specific_lane_rules.html
 [road-marks]: https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/11_lanes/11_08_road_markings.html
+[road-crg]: https://simulation.pages.asam.net/opendrive-group/opendrive-antora-gen/ASAM_OpenDRIVE_Specification/v1.9.0/specification/10_roads/10_06_road_surface.html
