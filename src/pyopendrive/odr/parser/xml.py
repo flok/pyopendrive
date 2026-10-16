@@ -1,6 +1,9 @@
 """Internal XML-to-model conversion."""
 
+import gzip
 import math
+import zlib
+from os import PathLike
 from pathlib import Path
 from typing import IO
 from xml.etree import ElementTree
@@ -53,7 +56,19 @@ class OpenDriveParseError(ValueError):
 
 def parse(source: XmlSource) -> OpenDriveMap:
     try:
-        root = ElementTree.parse(source).getroot()
+        if (
+            isinstance(source, (str, PathLike))
+            and Path(source).suffix.lower() == ".xodrz"
+        ):
+            try:
+                xml = gzip.decompress(Path(source).read_bytes())
+            except (gzip.BadGzipFile, EOFError, zlib.error) as error:
+                raise OpenDriveParseError(
+                    f"Invalid gzip-compressed OpenDRIVE file: {error}"
+                ) from error
+            root = ElementTree.fromstring(xml)
+        else:
+            root = ElementTree.parse(source).getroot()
     except ElementTree.ParseError as error:
         raise OpenDriveParseError(f"Invalid XML: {error}") from error
 

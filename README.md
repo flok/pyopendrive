@@ -29,11 +29,12 @@ for junction in road_map.junctions:
     print(junction.id, len(junction.connections))
 ```
 
-`OpenDriveMap.load` accepts filesystem paths and caller-owned text or binary
-streams. Caller-owned streams remain open. `OpenDrive` remains available as a
-compatibility alias. Successful parsing reads supported fields but does not
-imply complete XSD or semantic validation. Recoverable unsupported content is
-reported through structured values in `road_map.diagnostics`.
+`OpenDriveMap.load` accepts `.xodr` paths, gzip-compressed `.xodrz` paths, and
+caller-owned text or binary streams. Caller-owned streams remain open.
+`OpenDrive` remains available as a compatibility alias. Successful parsing
+reads supported fields but does not imply complete XSD or semantic validation.
+Recoverable unsupported content is reported through structured values in
+`road_map.diagnostics`.
 
 ## Package layout
 
