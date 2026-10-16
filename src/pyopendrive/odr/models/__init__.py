@@ -1,5 +1,11 @@
 """Public domain models for the OpenDRIVE namespace."""
 
+from pyopendrive.odr.models.ancillary import (
+    DataQuality,
+    DataQualityError,
+    RawData,
+    UserData,
+)
 from pyopendrive.odr.models.geometry import (
     Arc,
     GeometrySegment,
@@ -87,6 +93,8 @@ from pyopendrive.odr.models.signals import (
 )
 
 __all__ = [
+    "DataQuality",
+    "DataQualityError",
     "Arc",
     "Controller",
     "ControllerControl",
@@ -152,6 +160,7 @@ __all__ = [
     "RoadRegulation",
     "RoadSpeed",
     "RoadType",
+    "RawData",
     "Shape",
     "Signal",
     "SignalDependency",
@@ -161,4 +170,5 @@ __all__ = [
     "Spiral",
     "SurfaceCoefficients",
     "SurfaceStrip",
+    "UserData",
 ]

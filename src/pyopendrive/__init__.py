@@ -9,6 +9,8 @@ from pyopendrive.odr import (
     Crossfall,
     CrossSectionSurface,
     CurveLocal,
+    DataQuality,
+    DataQualityError,
     DefaultRegulations,
     GeometrySegment,
     Header,
@@ -58,6 +60,7 @@ from pyopendrive.odr import (
     ParamPoly3,
     Poly3,
     PolynomialProfile,
+    RawData,
     RegulationSemantic,
     Road,
     RoadLink,
@@ -75,12 +78,15 @@ from pyopendrive.odr import (
     Spiral,
     SurfaceCoefficients,
     SurfaceStrip,
+    UserData,
     validate_junctions,
 )
 from pyopendrive.odr.api import OpenDrive
 
 __all__ = [
     "Arc",
+    "DataQuality",
+    "DataQualityError",
     "Controller",
     "ControllerControl",
     "CornerLocal",
@@ -146,6 +152,7 @@ __all__ = [
     "RoadRegulation",
     "RoadSpeed",
     "RoadType",
+    "RawData",
     "Shape",
     "Signal",
     "SignalDependency",
@@ -155,5 +162,6 @@ __all__ = [
     "Spiral",
     "SurfaceCoefficients",
     "SurfaceStrip",
+    "UserData",
     "validate_junctions",
 ]

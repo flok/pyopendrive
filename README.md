@@ -35,6 +35,12 @@ compatibility alias. Successful parsing reads supported fields but does not
 imply complete XSD or semantic validation. Recoverable unsupported content is
 reported through structured values in `road_map.diagnostics`.
 
+The map exposes parsed `userData` and `dataQuality` records as
+`road_map.user_data` and `road_map.data_quality`. Diagnostics include an XML
+element path; source line numbers are not available from the standard-library
+ElementTree parser. Unknown extension payloads are reported rather than retained
+as arbitrary XML.
+
 ## Package layout
 
 - `pyopendrive/odr/models/` contains the public domain objects.

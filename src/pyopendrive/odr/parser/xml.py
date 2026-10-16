@@ -6,6 +6,8 @@ from typing import IO
 from xml.etree import ElementTree
 
 from pyopendrive.odr.models import (
+    DataQuality,
+    DataQualityError,
     DefaultRegulations,
     Header,
     License,
@@ -13,6 +15,7 @@ from pyopendrive.odr.models import (
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveVersion,
+    RawData,
     RegulationSemantic,
     Road,
     RoadLink,
@@ -20,6 +23,7 @@ from pyopendrive.odr.models import (
     RoadSpeed,
     RoadType,
     SignalRegulation,
+    UserData,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.parser.junctions import (
@@ -102,6 +106,7 @@ def parse(source: XmlSource) -> OpenDriveMap:
     diagnostics = _collect_diagnostics(
         root, header_element, road_elements, format_version.minor
     )
+    user_data, data_quality = _parse_ancillary_data(root)
     return OpenDriveMap(
         format_version=format_version,
         header=header,
@@ -110,6 +115,8 @@ def parse(source: XmlSource) -> OpenDriveMap:
         junctions=junctions,
         junction_groups=junction_groups,
         controllers=controllers,
+        user_data=user_data,
+        data_quality=data_quality,
     )
 
 
@@ -525,7 +532,136 @@ def _collect_diagnostics(
             _junction_diagnostics(child, path, diagnostics)
         elif name not in {"header", "road"}:
             _unsupported_element(child, f"/OpenDRIVE/{name}", diagnostics)
-    return tuple(diagnostics)
+    _ancillary_diagnostics(root, diagnostics)
+    document_order = _element_path_order(root)
+    return tuple(
+        sorted(
+            diagnostics,
+            key=lambda item: document_order.get(item.element, len(document_order)),
+        )
+    )
+
+
+def _element_path_order(root: ElementTree.Element) -> dict[str, int]:
+    path_order: dict[str, int] = {}
+    order = 0
+
+    def visit(element: ElementTree.Element, path: str, indexed_path: str) -> None:
+        nonlocal order
+        path_order.setdefault(path, order)
+        path_order.setdefault(indexed_path, order)
+        order += 1
+        for index, child in enumerate(element):
+            name = _local_name(child.tag)
+            identifier = (
+                f"[@id='{child.get('id')}']" if child.get("id") is not None else ""
+            )
+            visit(
+                child,
+                f"{path}/{name}{identifier}",
+                f"{indexed_path}/{name}[{index}]{identifier}",
+            )
+
+    root_name = _local_name(root.tag)
+    visit(root, f"/{root_name}", f"/{root_name}")
+    return path_order
+
+
+def _parse_ancillary_data(
+    root: ElementTree.Element,
+) -> tuple[tuple[UserData, ...], tuple[DataQuality, ...]]:
+    user_data: list[UserData] = []
+    data_quality: list[DataQuality] = []
+
+    def visit(element: ElementTree.Element, path: str) -> None:
+        for index, child in enumerate(element):
+            name = _local_name(child.tag)
+            child_path = f"{path}/{name}[{index}]"
+            if child.get("id") is not None:
+                child_path += f"[@id='{child.get('id')}']"
+            if name == "userData":
+                user_data.append(
+                    UserData(child_path, child.get("code"), child.get("value"))
+                )
+            elif name == "dataQuality":
+                error = next(
+                    (item for item in child if _local_name(item.tag) == "error"),
+                    None,
+                )
+                raw_data = next(
+                    (item for item in child if _local_name(item.tag) == "rawData"),
+                    None,
+                )
+                data_quality.append(
+                    DataQuality(
+                        child_path,
+                        DataQualityError(
+                            error.get("xyAbsolute"),
+                            error.get("xyRelative"),
+                            error.get("zAbsolute"),
+                            error.get("zRelative"),
+                        )
+                        if error is not None
+                        else None,
+                        RawData(
+                            raw_data.get("date"),
+                            raw_data.get("postProcessing"),
+                            raw_data.get("postProcessingComment"),
+                            raw_data.get("source"),
+                            raw_data.get("sourceComment"),
+                        )
+                        if raw_data is not None
+                        else None,
+                    )
+                )
+            visit(child, child_path)
+
+    visit(root, f"/{_local_name(root.tag)}")
+    return tuple(user_data), tuple(data_quality)
+
+
+def _ancillary_diagnostics(
+    root: ElementTree.Element,
+    diagnostics: list[OpenDriveDiagnostic],
+) -> None:
+    error_attributes = {"xyAbsolute", "xyRelative", "zAbsolute", "zRelative"}
+    raw_data_attributes = {
+        "date",
+        "postProcessing",
+        "postProcessingComment",
+        "source",
+        "sourceComment",
+    }
+
+    def visit(element: ElementTree.Element, path: str) -> None:
+        for index, child in enumerate(element):
+            name = _local_name(child.tag)
+            child_path = f"{path}/{name}[{index}]"
+            if name == "userData":
+                _unsupported_attributes(
+                    child, {"code", "value"}, child_path, diagnostics
+                )
+                _unsupported_children(child, child_path, diagnostics)
+            elif name == "dataQuality":
+                _unsupported_attributes(child, set(), child_path, diagnostics)
+                for item_index, item in enumerate(child):
+                    item_name = _local_name(item.tag)
+                    item_path = f"{child_path}/{item_name}[{item_index}]"
+                    if item_name == "error":
+                        _unsupported_attributes(
+                            item, error_attributes, item_path, diagnostics
+                        )
+                        _unsupported_children(item, item_path, diagnostics)
+                    elif item_name == "rawData":
+                        _unsupported_attributes(
+                            item, raw_data_attributes, item_path, diagnostics
+                        )
+                        _unsupported_children(item, item_path, diagnostics)
+                    else:
+                        _unsupported_element(item, item_path, diagnostics)
+            visit(child, child_path)
+
+    visit(root, f"/{_local_name(root.tag)}")
 
 
 def _junction_diagnostics(
@@ -792,6 +928,8 @@ def _unsupported_element(
     path: str,
     diagnostics: list[OpenDriveDiagnostic],
 ) -> None:
+    if _local_name(element.tag) in {"userData", "dataQuality"}:
+        return
     diagnostics.append(
         OpenDriveDiagnostic(
             code="unsupported-element",

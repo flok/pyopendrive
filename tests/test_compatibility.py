@@ -135,11 +135,6 @@ def test_lane_extensions_are_reported_in_document_order() -> None:
             lane_path,
         ),
         OpenDriveDiagnostic(
-            "unsupported-element",
-            "Element 'userData' is not currently parsed.",
-            f"{lane_path}/userData",
-        ),
-        OpenDriveDiagnostic(
             "unsupported-attribute",
             "Attribute 'vendor' is not currently parsed.",
             f"{lane_path}/link/successor",
@@ -163,5 +158,10 @@ def test_lane_extensions_are_reported_in_document_order() -> None:
             "unsupported-attribute",
             "Attribute 'color' is not currently parsed.",
             f"{lane_path}/roadMark/type/line",
+        ),
+        OpenDriveDiagnostic(
+            "unsupported-element",
+            "Element 'payload' is not currently parsed.",
+            "/OpenDRIVE/road[1]/lanes[0]/laneSection[1]/right[1]/lane[0]/userData[0]/payload",
         ),
     )

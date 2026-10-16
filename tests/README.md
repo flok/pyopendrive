@@ -26,11 +26,18 @@ required parser fields. Tests assert the failed field and the error's element
 path. This corpus covers parser errors, not every invalid document an XSD or
 semantic validator would reject.
 
+`fixtures/extensions/additional-data.xodr` is an independently authored example
+of `userData`, `dataQuality`, raw-data metadata, and unknown extension content.
+Its shapes follow [ASAM OpenDRIVE 1.8.1 sections 7.2 and 7.4][additional-data];
+it is a parser test fixture, not a copied ASAM example or a claim of complete
+schema validity.
+
 `fixtures/revisions/1.9/lane-extensions.xodr` deliberately combines unsupported
-lane content with parsed widths. Tests check each diagnostic and its order,
-including unknown group attributes, nested children, a namespaced attribute,
-`userData`, explicit road-mark lines, sway offsets, and line color. The fixture
-is designed to exercise diagnostics and does not claim schema validity.
+lane content with parsed widths. Tests check diagnostics for unknown group
+attributes, nested children, a namespaced attribute, explicit road-mark lines,
+sway offsets, and line color. Its `userData` record is parsed while the unknown
+payload child is diagnosed. The fixture is designed to exercise diagnostics
+and does not claim schema validity.
 Unsupported subtrees produce one diagnostic at their root. The parser discards
 their payloads.
 
@@ -77,3 +84,4 @@ complete coverage of revision differences remain future work.
 
 [lane-rules]: https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/11_lanes/11_09_specific_lane_rules.html
 [road-marks]: https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/11_lanes/11_08_road_markings.html
+[additional-data]: https://publications.pages.asam.net/standards/ASAM_OpenDRIVE/ASAM_OpenDRIVE_Specification/v1.8.1/specification/07_additional_data/07_00_additional_data.html

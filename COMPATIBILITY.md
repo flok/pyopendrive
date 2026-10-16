@@ -58,7 +58,7 @@ claim that every detail has already been implemented.
 | Signals and lane validity | Partial | Supported | Parses signals/references, dependencies, signal links, lane validity, and temporary/invalidated source state. Signal semantics and alternate position records remain unsupported and are diagnosed. |
 | Road objects and object outlines/markings | Partial | Supported | Parses object/reference attributes, road/local outline corners, smooth line/arc/paramPoly3 curves, and object/outline markings. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported and are diagnosed. |
 | Rail tracks, switches, tram, and stations | Planned | Supported | Static network elements only. |
-| `userData`, `include`, data quality, unknown extensions | Planned | Preserve or report | Preserve unknown extension payload where practical; include expansion is tracked separately. |
+| `userData`, data quality, unknown extensions | Partial | Preserve or report | Parses user data, data-quality error values, and raw-data metadata into immutable map records. Unknown elements and attributes are diagnosed with XML paths; arbitrary XML payloads and ElementTree source line numbers are not retained. |
 | XSD and semantic validation | Not implemented | Optional | Not a mandatory runtime dependency; separate roadmap issue. |
 | Geometry evaluation, coordinate transforms, routing | Out of scope | Out of scope | Parsing geometry records does not promise derived positions or routing. |
 | Dynamic participants and external CRG payload decoding | Out of scope | Out of scope | OpenDRIVE describes static networks; dynamic content belongs to other standards. |

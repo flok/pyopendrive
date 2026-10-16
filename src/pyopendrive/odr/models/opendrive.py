@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from os import PathLike
 from typing import IO
 
+from pyopendrive.odr.models.ancillary import DataQuality, UserData
 from pyopendrive.odr.models.junctions import Controller, Junction, JunctionGroup
 from pyopendrive.odr.models.road import Road
 
@@ -93,6 +94,8 @@ class OpenDriveMap:
     junctions: tuple[Junction, ...] = ()
     junction_groups: tuple[JunctionGroup, ...] = ()
     controllers: tuple[Controller, ...] = ()
+    user_data: tuple[UserData, ...] = ()
+    data_quality: tuple[DataQuality, ...] = ()
 
     @staticmethod
     def load(source: OpenDriveSource) -> OpenDriveMap:
