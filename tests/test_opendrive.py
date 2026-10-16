@@ -39,6 +39,21 @@ def test_load_minimal_map() -> None:
     assert not source.closed
 
 
+@pytest.mark.parametrize(("major", "minor"), [(1, 3), (1, 10), (2, 0)])
+def test_rejects_unsupported_format_revisions(major: int, minor: int) -> None:
+    source = MINIMAL_MAP.replace(
+        b'revMajor="1" revMinor="9"',
+        f'revMajor="{major}" revMinor="{minor}"'.encode(),
+    )
+
+    with pytest.raises(
+        OpenDriveParseError, match="Unsupported OpenDRIVE revision"
+    ) as exc:
+        OpenDriveMap.load(BytesIO(source))
+
+    assert exc.value.element == "/OpenDRIVE/header"
+
+
 # Fixtures cover header constructs described in ASAM OpenDRIVE sections 6.4 and 8.5.
 @pytest.mark.parametrize("revision", [(1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9)])
 def test_header_metadata_is_separate_from_format_revision(

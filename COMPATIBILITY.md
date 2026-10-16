@@ -40,6 +40,8 @@ The OpenDRIVE `<header>` identifies the format revision with `revMajor` and
 1.8.0 from 1.8.1. PyOpenDrive therefore reports the revision encoded in the
 document and must not infer a patch release. Patch-specific schema validation,
 when enabled, needs an explicit schema choice or another source of provenance.
+The parser accepts header revisions 1.4 through 1.9 and rejects other major or
+minor values with an `OpenDriveParseError` located at `/OpenDRIVE/header`.
 
 ## Feature coverage
 
