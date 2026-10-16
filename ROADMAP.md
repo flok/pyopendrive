@@ -8,7 +8,8 @@ implementation and the project's architecture documented in
 ## Current implementation
 
 - Public entry point: `OpenDriveMap.load(source)`, exported from `pyopendrive`;
-  it accepts paths and caller-owned streams. `OpenDrive.load` remains an alias.
+  it accepts `.xodr` paths, gzip-compressed `.xodrz` paths, and caller-owned
+  streams. `OpenDrive.load` remains an alias.
 - `odr/api.py` is the loading facade. `odr/parser/xml.py` parses XML with the
   standard-library `ElementTree`; `odr/models/` contains data-only, immutable
   models. The parser and models remain separate.
@@ -66,7 +67,8 @@ implementation and the project's architecture documented in
 13. Parse supplementary network elements.
 14. Preserve and report user-defined extensions.
 15. Resolve included OpenDRIVE files.
-16. Read gzip-compressed `.xodrz` files.
+16. Read gzip-compressed `.xodrz` files — `.xodrz` path loading is implemented;
+    gzip-compressed includes remain part of issue #19.
 
 ### M4 — Compatibility and validation
 

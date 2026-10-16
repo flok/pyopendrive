@@ -1,6 +1,7 @@
 """Small examples of testing the public loading API."""
 
 from io import BytesIO, StringIO
+from pathlib import Path
 
 import pytest
 
@@ -142,6 +143,20 @@ def test_load_path_and_binary_stream(tmp_path) -> None:
     stream = BytesIO(MINIMAL_MAP)
     assert OpenDriveMap.load(stream).roads[0].id == "1"
     assert not stream.closed
+
+
+def test_load_gzip_compressed_path() -> None:
+    path = Path(__file__).parent / "fixtures/revisions/1.9/basic.xodrz"
+
+    assert OpenDriveMap.load(path).roads[0].id == "001"
+
+
+def test_invalid_gzip_has_distinct_parse_error(tmp_path) -> None:
+    path = tmp_path / "invalid.xodrz"
+    path.write_bytes(b"not gzip")
+
+    with pytest.raises(OpenDriveParseError, match="Invalid gzip-compressed"):
+        OpenDriveMap.load(path)
 
 
 def test_legacy_loader_delegates_to_map() -> None:
