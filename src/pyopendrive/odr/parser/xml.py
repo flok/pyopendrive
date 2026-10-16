@@ -6,6 +6,7 @@ import zlib
 from os import PathLike
 from pathlib import Path
 from typing import IO
+from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
 from pyopendrive.odr.models import (
@@ -41,7 +42,7 @@ from pyopendrive.odr.parser.signals import (
     record_diagnostics,
 )
 
-type XmlSource = str | Path | IO[bytes] | IO[str]
+type XmlSource = str | PathLike[str] | IO[bytes] | IO[str]
 
 
 class OpenDriveParseError(ValueError):
@@ -55,20 +56,13 @@ class OpenDriveParseError(ValueError):
 
 
 def parse(source: XmlSource) -> OpenDriveMap:
+    source_path = Path(source) if isinstance(source, (str, PathLike)) else None
     try:
-        if (
-            isinstance(source, (str, PathLike))
-            and Path(source).suffix.lower() == ".xodrz"
-        ):
-            try:
-                xml = gzip.decompress(Path(source).read_bytes())
-            except (gzip.BadGzipFile, EOFError, zlib.error) as error:
-                raise OpenDriveParseError(
-                    f"Invalid gzip-compressed OpenDRIVE file: {error}"
-                ) from error
-            root = ElementTree.fromstring(xml)
-        else:
-            root = ElementTree.parse(source).getroot()
+        root = (
+            _parse_file(source_path)
+            if source_path is not None
+            else ElementTree.parse(source).getroot()
+        )
     except ElementTree.ParseError as error:
         raise OpenDriveParseError(f"Invalid XML: {error}") from error
 
@@ -77,10 +71,18 @@ def parse(source: XmlSource) -> OpenDriveMap:
             "Root element must be 'OpenDRIVE'.", element=f"/{_local_name(root.tag)}"
         )
 
+    _expand_includes(
+        root,
+        source_path.parent if source_path is not None else None,
+        (source_path.resolve(),) if source_path is not None else (),
+        f"/{_local_name(root.tag)}",
+    )
+
     header_element = next(
         (element for element in root if _local_name(element.tag) == "header"),
         None,
     )
+
     if header_element is None:
         raise OpenDriveParseError(
             "OpenDRIVE document is missing its header.", element="/OpenDRIVE"
@@ -126,6 +128,96 @@ def parse(source: XmlSource) -> OpenDriveMap:
         junction_groups=junction_groups,
         controllers=controllers,
     )
+
+
+def _parse_file(path: Path) -> ElementTree.Element:
+    if path.suffix.lower() == ".xodrz":
+        try:
+            xml = gzip.decompress(path.read_bytes())
+        except (gzip.BadGzipFile, EOFError, zlib.error) as error:
+            raise OpenDriveParseError(
+                f"Invalid gzip-compressed OpenDRIVE file '{path}': {error}"
+            ) from error
+        return ElementTree.fromstring(xml)
+    return ElementTree.parse(path).getroot()
+
+
+def _expand_includes(
+    element: ElementTree.Element,
+    base_dir: Path | None,
+    chain: tuple[Path, ...],
+    element_path: str,
+) -> None:
+    index = 0
+    for child in list(element):
+        child_name = _local_name(child.tag)
+        child_path = f"{element_path}/{child_name}[{index}]"
+        if child_name != "include":
+            _expand_includes(child, base_dir, chain, child_path)
+            index += 1
+            continue
+
+        if base_dir is None:
+            raise OpenDriveParseError(
+                "Cannot resolve include from an in-memory stream without a base path.",
+                element=child_path,
+            )
+        include_file = child.get("file")
+        if not include_file:
+            raise OpenDriveParseError(
+                "Include is missing required attribute 'file'.", element=child_path
+            )
+        location = urlsplit(include_file)
+        if location.scheme or location.netloc:
+            raise OpenDriveParseError(
+                "Network URLs are not supported for includes.", element=child_path
+            )
+
+        include_path = (base_dir / include_file).resolve()
+        include_chain = (*chain, include_path)
+        chain_text = " -> ".join(str(path) for path in include_chain)
+        if include_path in chain:
+            raise OpenDriveParseError(
+                f"Include cycle detected: {chain_text}", element=child_path
+            )
+        try:
+            included_root = _parse_file(include_path)
+        except FileNotFoundError as error:
+            raise OpenDriveParseError(
+                f"Included file does not exist (include chain: {chain_text}).",
+                element=child_path,
+            ) from error
+        except (OSError, OpenDriveParseError) as error:
+            raise OpenDriveParseError(
+                f"Could not read included file (include chain: {chain_text}): {error}",
+                element=child_path,
+            ) from error
+        except ElementTree.ParseError as error:
+            raise OpenDriveParseError(
+                f"Invalid XML in included file (include chain: {chain_text}): {error}",
+                element=child_path,
+            ) from error
+
+        expected_root = element_path.rsplit("/", maxsplit=1)[-1].split("[", maxsplit=1)[
+            0
+        ]
+        if _local_name(included_root.tag) != expected_root:
+            raise OpenDriveParseError(
+                f"Included root must be '{expected_root}' "
+                f"(include chain: {chain_text}).",
+                element=child_path,
+            )
+
+        _expand_includes(
+            included_root,
+            include_path.parent,
+            include_chain,
+            element_path,
+        )
+        element.remove(child)
+        for included_child in reversed(list(included_root)):
+            element.insert(index, included_child)
+        index += len(list(included_root))
 
 
 def _parse_road(element: ElementTree.Element, revision: int) -> Road:

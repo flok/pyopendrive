@@ -1,5 +1,6 @@
 """Small examples of testing the public loading API."""
 
+import gzip
 from io import BytesIO, StringIO
 from pathlib import Path
 
@@ -157,6 +158,72 @@ def test_invalid_gzip_has_distinct_parse_error(tmp_path) -> None:
 
     with pytest.raises(OpenDriveParseError, match="Invalid gzip-compressed"):
         OpenDriveMap.load(path)
+
+
+def test_include_expands_geometry_from_nested_gzip_file(tmp_path) -> None:
+    (tmp_path / "parts").mkdir()
+    (tmp_path / "map.xodr").write_text(
+        '<OpenDRIVE><header revMajor="1" revMinor="9"/>'
+        '<road id="1" length="12.5" junction="-1"><planView>'
+        '<include file="geometry.xml"/></planView></road></OpenDRIVE>'
+    )
+    (tmp_path / "geometry.xml").write_text(
+        '<planView><include file="parts/geometry.xodrz"/></planView>'
+    )
+    geometry = (
+        b'<planView><geometry s="0" x="1" y="2" hdg="0" length="12.5">'
+        b"<line/></geometry></planView>"
+    )
+    (tmp_path / "parts/geometry.xodrz").write_bytes(gzip.compress(geometry, mtime=0))
+
+    road = OpenDriveMap.load(tmp_path / "map.xodr").roads[0]
+
+    assert (road.plan_view[0].x, road.plan_view[0].y, road.plan_view[0].length) == (
+        1,
+        2,
+        12.5,
+    )
+
+
+def test_include_cycle_reports_chain(tmp_path) -> None:
+    source = tmp_path / "map.xodr"
+    source.write_text('<OpenDRIVE><include file="other.xodr"/></OpenDRIVE>')
+    (tmp_path / "other.xodr").write_text(
+        '<OpenDRIVE><include file="map.xodr"/></OpenDRIVE>'
+    )
+
+    with pytest.raises(OpenDriveParseError, match="Include cycle detected") as caught:
+        OpenDriveMap.load(source)
+
+    assert str(source) in str(caught.value)
+    assert str(tmp_path / "other.xodr") in str(caught.value)
+
+
+def test_missing_include_reports_chain(tmp_path) -> None:
+    source = tmp_path / "map.xodr"
+    source.write_text('<OpenDRIVE><include file="missing.xodr"/></OpenDRIVE>')
+
+    with pytest.raises(OpenDriveParseError, match="Included file does not exist"):
+        OpenDriveMap.load(source)
+
+
+def test_include_rejects_network_urls(tmp_path) -> None:
+    source = tmp_path / "map.xodr"
+    source.write_text(
+        '<OpenDRIVE><include file="https://example.invalid/map.xodr"/></OpenDRIVE>'
+    )
+
+    with pytest.raises(OpenDriveParseError, match="Network URLs are not supported"):
+        OpenDriveMap.load(source)
+
+
+def test_stream_include_requires_base_path() -> None:
+    xml = MINIMAL_MAP.replace(
+        b"</OpenDRIVE>", b'<include file="geometry.xodr"/></OpenDRIVE>'
+    )
+
+    with pytest.raises(OpenDriveParseError, match="without a base path"):
+        OpenDriveMap.load(BytesIO(xml))
 
 
 def test_legacy_loader_delegates_to_map() -> None:
