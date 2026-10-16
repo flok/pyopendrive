@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9">
+    <userData code="vendor" value="header" extra="ignored"><payload/></userData>
+    <dataQuality>
+      <error xyAbsolute="0.1" xyRelative="0.2" zAbsolute="0.3" zRelative="0.4" extra="ignored"/>
+      <rawData date="2026-01-01" postProcessing="filtered"
+               postProcessingComment="note" source="survey" sourceComment="field"/>
+    </dataQuality>
+    <unknownExtension/>
+  </header>
+  <road id="1" length="1" junction="-1">
+    <userData code="road" value="kept"/>
+  </road>
+</OpenDRIVE>

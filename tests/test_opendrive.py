@@ -1,10 +1,13 @@
 """Small examples of testing the public loading API."""
 
 from io import BytesIO, StringIO
+from pathlib import Path
 
 import pytest
 
 from pyopendrive import (
+    DataQuality,
+    DataQualityError,
     DefaultRegulations,
     License,
     Offset,
@@ -13,9 +16,11 @@ from pyopendrive import (
     OpenDriveMap,
     OpenDriveParseError,
     OpenDriveVersion,
+    RawData,
     RegulationSemantic,
     RoadRegulation,
     SignalRegulation,
+    UserData,
 )
 
 MINIMAL_MAP = b"""\
@@ -209,6 +214,30 @@ def test_unsupported_content_produces_structured_diagnostics() -> None:
             "/OpenDRIVE/station",
         ),
     )
+
+
+def test_user_data_and_quality_are_preserved_with_unknown_extensions() -> None:
+    source = Path(__file__).parent / "fixtures/extensions/additional-data.xodr"
+
+    road_map = OpenDriveMap.load(source)
+
+    assert road_map.user_data == (
+        UserData("/OpenDRIVE/header[0]/userData[0]", "vendor", "header"),
+        UserData("/OpenDRIVE/road[1][@id='1']/userData[0]", "road", "kept"),
+    )
+    assert road_map.data_quality == (
+        DataQuality(
+            "/OpenDRIVE/header[0]/dataQuality[1]",
+            DataQualityError("0.1", "0.2", "0.3", "0.4"),
+            RawData("2026-01-01", "filtered", "note", "survey", "field"),
+        ),
+    )
+    diagnostic_paths = {item.element for item in road_map.diagnostics}
+    assert "/OpenDRIVE/header/unknownExtension" in diagnostic_paths
+    assert "/OpenDRIVE/header[0]/userData[0]" in diagnostic_paths
+    assert "/OpenDRIVE/header[0]/userData[0]/payload" in diagnostic_paths
+    assert "/OpenDRIVE/header[0]/dataQuality[1]/error[0]" in diagnostic_paths
+    assert road_map.roads[0].id == "1"
 
 
 def test_parses_road_types_and_links() -> None:

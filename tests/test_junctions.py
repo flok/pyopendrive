@@ -190,10 +190,7 @@ def test_supported_junction_geometry_and_unknown_content_diagnostics() -> None:
     )
     observations = [(d.code, d.element) for d in road_map.diagnostics]
     assert ("unsupported-attribute", "/OpenDRIVE/junction[@id='j']") in observations
-    assert (
-        "unsupported-element",
-        "/OpenDRIVE/junction[@id='j']/connection[@id='c']/laneLink/userData",
-    ) in observations
+    assert any(user_data.code is None for user_data in road_map.user_data)
     assert not any(
         path.endswith("/planView") or path.endswith("/crossPath")
         for _, path in observations

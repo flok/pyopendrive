@@ -19,8 +19,9 @@ implementation and the project's architecture documented in
   supported outline and marking records. It handles namespace-prefixed XML
   element names and reports malformed XML or missing required structure through
   `OpenDriveParseError`. Unsupported content produces structured diagnostics
-  with element context. Geometry evaluation and semantic validation remain
-  separate capabilities.
+  with element paths. Maps expose parsed `user_data` and `data_quality` records;
+  arbitrary extension XML is not retained. Geometry evaluation and semantic
+  validation remain separate capabilities.
 - Tests include authored revision fixtures for 1.4 through 1.9, malformed
   documents, focused parser behavior checks, and the ASAM 1.9.0 examples/use-cases
   corpus. `tests/fetch_testdata.py` downloads the archive, verifies its SHA-256,
@@ -64,7 +65,9 @@ implementation and the project's architecture documented in
 11. Parse signals and controllers — **partial**; signals, references, lane validity, dependencies, links, and static controller mappings are implemented. Signal semantics and alternate position records remain unsupported.
 12. Parse road objects and object references — **partial**; object attributes, references, road/local outline corners, smooth outline curves, and markings are implemented. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported.
 13. Parse supplementary network elements.
-14. Preserve and report user-defined extensions.
+14. Preserve and report user-defined extensions — `userData`, `dataQuality`,
+    and raw-data metadata are modeled; unknown content is diagnosed. Arbitrary
+    XML preservation and source line numbers remain unsupported.
 15. Resolve included OpenDRIVE files.
 16. Read gzip-compressed `.xodrz` files.
 

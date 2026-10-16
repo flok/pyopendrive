@@ -21,6 +21,7 @@ src/pyopendrive/
     ├── api.py
     ├── checks.py          # Opt-in semantic reference checks
     ├── models/
+    │   ├── ancillary.py   # User data and data-quality values
     │   ├── __init__.py
     │   ├── geometry.py     # Plan-view geometry values
     │   ├── junctions.py    # Junction topology and controller values
@@ -75,6 +76,10 @@ road and junction references, and referenced lane IDs without changing load
 behavior. Junction boundary and elevation-grid values preserve source metadata;
 CRG files are not opened. Unsupported network children and attributes produce
 diagnostics.
+
+Maps expose ancillary `user_data` and `data_quality` records with their XML
+paths. Unknown extension content produces diagnostics; arbitrary XML payloads
+are not preserved. The ElementTree parser does not provide source line numbers.
 Geometry values preserve source parameters; geometry
 calculation and coordinate transforms remain separate. The header contains
 major/minor revision only, so patch releases cannot be inferred.
