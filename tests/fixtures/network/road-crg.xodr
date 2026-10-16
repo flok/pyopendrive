@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="Authored CRG metadata fixture"/>
+  <road id="crg-road" length="20" junction="-1">
+    <surface>
+      <CRG file="surface.crg" mode="global" orientation="same"
+           sStart="0" sEnd="20" xOffset="10" yOffset="15"
+           hOffset="0.25" zOffset="1.5" zScale="2"/>
+    </surface>
+  </road>
+</OpenDRIVE>

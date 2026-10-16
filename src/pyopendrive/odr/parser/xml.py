@@ -13,13 +13,20 @@ from pyopendrive.odr.models import (
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveVersion,
+    Platform,
+    PlatformSegment,
+    RailroadSwitch,
+    RailroadTrack,
     RegulationSemantic,
     Road,
+    RoadCrg,
     RoadLink,
     RoadRegulation,
     RoadSpeed,
     RoadType,
     SignalRegulation,
+    Station,
+    SwitchPartner,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.parser.junctions import (
@@ -98,6 +105,15 @@ def parse(source: XmlSource) -> OpenDriveMap:
         )
     except JunctionParseError as error:
         raise OpenDriveParseError(error.message, element=error.element) from error
+    stations = (
+        tuple(
+            _parse_station(child)
+            for child in root
+            if _local_name(child.tag) == "station"
+        )
+        if format_version.minor >= 7
+        else ()
+    )
 
     diagnostics = _collect_diagnostics(
         root, header_element, road_elements, format_version.minor
@@ -110,6 +126,42 @@ def parse(source: XmlSource) -> OpenDriveMap:
         junctions=junctions,
         junction_groups=junction_groups,
         controllers=controllers,
+        stations=stations,
+    )
+
+
+def _parse_station(element: ElementTree.Element) -> Station:
+    path = f"/OpenDRIVE/station[@id='{element.get('id', '?')}']"
+    return Station(
+        id=_required_string(element, "id", path),
+        name=_required_string(element, "name", path),
+        type=element.get("type"),
+        platforms=tuple(
+            Platform(
+                id=_required_string(platform, "id", f"{path}/platform"),
+                name=platform.get("name"),
+                segments=tuple(
+                    PlatformSegment(
+                        road_id=_required_string(
+                            segment, "roadId", f"{path}/platform/segment"
+                        ),
+                        s_start=_required_float(
+                            segment, "sStart", f"{path}/platform/segment"
+                        ),
+                        s_end=_required_float(
+                            segment, "sEnd", f"{path}/platform/segment"
+                        ),
+                        side=_required_string(
+                            segment, "side", f"{path}/platform/segment"
+                        ),
+                    )
+                    for segment in platform
+                    if _local_name(segment.tag) == "segment"
+                ),
+            )
+            for platform in element
+            if _local_name(platform.tag) == "platform"
+        ),
     )
 
 
@@ -172,7 +224,147 @@ def _parse_road(element: ElementTree.Element, revision: int) -> Road:
         signal_references=signal_references,
         objects=objects,
         object_references=object_references,
+        crgs=_parse_road_crgs(element, path, revision),
+        switches=_parse_road_switches(element, path, revision),
     )
+
+
+def _parse_road_crgs(
+    road: ElementTree.Element, path: str, revision: int
+) -> tuple[RoadCrg, ...]:
+    surface = next(
+        (child for child in road if _local_name(child.tag) == "surface"), None
+    )
+    if surface is None:
+        return ()
+
+    crgs = []
+    for index, element in enumerate(surface):
+        if _local_name(element.tag) != "CRG":
+            continue
+        crg_path = f"{path}/surface/CRG[{index}]"
+        file = element.get("file")
+        mode = element.get("mode")
+        orientation = element.get("orientation")
+        if file is None or mode is None or orientation is None:
+            missing = next(
+                name
+                for name, value in (
+                    ("file", file),
+                    ("mode", mode),
+                    ("orientation", orientation),
+                )
+                if value is None
+            )
+            raise OpenDriveParseError(
+                f"CRG is missing required '{missing}' attribute.", element=crg_path
+            )
+        crgs.append(
+            RoadCrg(
+                file=file,
+                mode=mode,
+                orientation=orientation,
+                s_start=_float_attribute(element, "sStart", crg_path),
+                s_end=_float_attribute(element, "sEnd", crg_path),
+                purpose=element.get("purpose"),
+                h_offset=(
+                    _float_attribute(element, "hOffset", crg_path)
+                    if "hOffset" in element.attrib
+                    else None
+                ),
+                s_offset=(
+                    _float_attribute(element, "sOffset", crg_path)
+                    if "sOffset" in element.attrib
+                    else None
+                ),
+                t_offset=(
+                    _float_attribute(element, "tOffset", crg_path)
+                    if "tOffset" in element.attrib
+                    else None
+                ),
+                x_offset=(
+                    _float_attribute(element, "xOffset", crg_path)
+                    if revision >= 9 and "xOffset" in element.attrib
+                    else None
+                ),
+                y_offset=(
+                    _float_attribute(element, "yOffset", crg_path)
+                    if revision >= 9 and "yOffset" in element.attrib
+                    else None
+                ),
+                z_offset=(
+                    _float_attribute(element, "zOffset", crg_path)
+                    if "zOffset" in element.attrib
+                    else None
+                ),
+                z_scale=(
+                    _float_attribute(element, "zScale", crg_path)
+                    if "zScale" in element.attrib
+                    else None
+                ),
+            )
+        )
+    return tuple(crgs)
+
+
+def _parse_road_switches(
+    road: ElementTree.Element, path: str, revision: int
+) -> tuple[RailroadSwitch, ...]:
+    if revision < 7:
+        return ()
+    railroad = next(
+        (child for child in road if _local_name(child.tag) == "railroad"), None
+    )
+    if railroad is None:
+        return ()
+
+    switches = []
+    for switch in railroad:
+        if _local_name(switch.tag) != "switch":
+            continue
+        switch_path = f"{path}/railroad/switch[@id='{switch.get('id', '?')}']"
+
+        def track(
+            switch_element: ElementTree.Element, path: str, name: str
+        ) -> RailroadTrack:
+            element = next(
+                (child for child in switch_element if _local_name(child.tag) == name),
+                None,
+            )
+            if element is None:
+                raise OpenDriveParseError(
+                    f"Switch is missing required '{name}' element.",
+                    element=path,
+                )
+            track_path = f"{path}/{name}"
+            return RailroadTrack(
+                _required_string(element, "id", track_path),
+                _required_float(element, "s", track_path),
+                _required_string(element, "dir", track_path),
+            )
+
+        partner_element = next(
+            (child for child in switch if _local_name(child.tag) == "partner"), None
+        )
+        partner = (
+            SwitchPartner(
+                _required_string(partner_element, "id", f"{switch_path}/partner"),
+                partner_element.get("name"),
+            )
+            if partner_element is not None
+            else None
+        )
+        switches.append(
+            RailroadSwitch(
+                id=_required_string(switch, "id", switch_path),
+                name=_required_string(switch, "name", switch_path),
+                position=_required_string(switch, "position", switch_path),
+                main_track=track(switch, switch_path, "mainTrack"),
+                side_track=track(switch, switch_path, "sideTrack"),
+                partner=partner,
+            )
+        )
+    return tuple(switches)
 
 
 def _parse_road_link(
@@ -515,6 +707,57 @@ def _collect_diagnostics(
                 )
             elif name == "lanes":
                 _lane_diagnostics(child, f"{path}/lanes", diagnostics)
+            elif name == "surface":
+                for index, crg in enumerate(child):
+                    crg_name = _local_name(crg.tag)
+                    crg_path = f"{path}/surface/{crg_name}[{index}]"
+                    if crg_name == "CRG":
+                        attributes = {
+                            "file",
+                            "hOffset",
+                            "mode",
+                            "orientation",
+                            "purpose",
+                            "sEnd",
+                            "sOffset",
+                            "sStart",
+                            "tOffset",
+                            "zOffset",
+                            "zScale",
+                        }
+                        if revision >= 9:
+                            attributes.update({"xOffset", "yOffset"})
+                        _unsupported_attributes(crg, attributes, crg_path, diagnostics)
+                        _unsupported_children(crg, crg_path, diagnostics)
+                    else:
+                        _unsupported_element(crg, crg_path, diagnostics)
+            elif name == "railroad" and revision >= 7:
+                railroad_path = f"{path}/railroad"
+                _unsupported_attributes(child, set(), railroad_path, diagnostics)
+                for switch in child:
+                    switch_name = _local_name(switch.tag)
+                    switch_path = f"{railroad_path}/{switch_name}"
+                    if switch_name != "switch":
+                        _unsupported_element(switch, switch_path, diagnostics)
+                        continue
+                    _unsupported_attributes(
+                        switch, {"id", "name", "position"}, switch_path, diagnostics
+                    )
+                    for record in switch:
+                        record_name = _local_name(record.tag)
+                        record_path = f"{switch_path}/{record_name}"
+                        if record_name in {"mainTrack", "sideTrack"}:
+                            _unsupported_attributes(
+                                record, {"id", "s", "dir"}, record_path, diagnostics
+                            )
+                            _unsupported_children(record, record_path, diagnostics)
+                        elif record_name == "partner":
+                            _unsupported_attributes(
+                                record, {"id", "name"}, record_path, diagnostics
+                            )
+                            _unsupported_children(record, record_path, diagnostics)
+                        else:
+                            _unsupported_element(record, record_path, diagnostics)
             else:
                 _unsupported_element(child, f"{path}/{name}", diagnostics)
 
@@ -523,6 +766,31 @@ def _collect_diagnostics(
         if name in {"junction", "junctionGroup", "controller"}:
             path = f"/OpenDRIVE/{name}[@id='{child.get('id', '?')}']"
             _junction_diagnostics(child, path, diagnostics)
+        elif name == "station" and revision >= 7:
+            path = f"/OpenDRIVE/station[@id='{child.get('id', '?')}']"
+            _unsupported_attributes(child, {"id", "name", "type"}, path, diagnostics)
+            for platform in child:
+                platform_name = _local_name(platform.tag)
+                platform_path = f"{path}/{platform_name}"
+                if platform_name != "platform":
+                    _unsupported_element(platform, platform_path, diagnostics)
+                    continue
+                _unsupported_attributes(
+                    platform, {"id", "name"}, platform_path, diagnostics
+                )
+                for segment in platform:
+                    segment_name = _local_name(segment.tag)
+                    segment_path = f"{platform_path}/{segment_name}"
+                    if segment_name == "segment":
+                        _unsupported_attributes(
+                            segment,
+                            {"roadId", "sStart", "sEnd", "side"},
+                            segment_path,
+                            diagnostics,
+                        )
+                        _unsupported_children(segment, segment_path, diagnostics)
+                    else:
+                        _unsupported_element(segment, segment_path, diagnostics)
         elif name not in {"header", "road"}:
             _unsupported_element(child, f"/OpenDRIVE/{name}", diagnostics)
     return tuple(diagnostics)

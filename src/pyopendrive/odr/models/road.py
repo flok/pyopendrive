@@ -6,6 +6,7 @@ from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.models.lanes import LaneLayer
 from pyopendrive.odr.models.objects import ObjectReference, RoadObject
 from pyopendrive.odr.models.profiles import RoadProfiles
+from pyopendrive.odr.models.railroads import RailroadSwitch
 from pyopendrive.odr.models.signals import Signal, SignalReference
 
 
@@ -34,6 +35,23 @@ class RoadLink:
 
 
 @dataclass(frozen=True, slots=True)
+class RoadCrg:
+    file: str
+    mode: str
+    orientation: str
+    s_start: float
+    s_end: float
+    purpose: str | None = None
+    h_offset: float | None = None
+    s_offset: float | None = None
+    t_offset: float | None = None
+    x_offset: float | None = None
+    y_offset: float | None = None
+    z_offset: float | None = None
+    z_scale: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class Road:
     id: str
     length: float
@@ -50,3 +68,5 @@ class Road:
     signal_references: tuple[SignalReference, ...] = ()
     objects: tuple[RoadObject, ...] = ()
     object_references: tuple[ObjectReference, ...] = ()
+    crgs: tuple[RoadCrg, ...] = ()
+    switches: tuple[RailroadSwitch, ...] = ()

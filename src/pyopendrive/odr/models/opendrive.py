@@ -5,6 +5,7 @@ from os import PathLike
 from typing import IO
 
 from pyopendrive.odr.models.junctions import Controller, Junction, JunctionGroup
+from pyopendrive.odr.models.railroads import Station
 from pyopendrive.odr.models.road import Road
 
 type OpenDriveSource = str | PathLike[str] | IO[bytes] | IO[str]
@@ -93,6 +94,7 @@ class OpenDriveMap:
     junctions: tuple[Junction, ...] = ()
     junction_groups: tuple[JunctionGroup, ...] = ()
     controllers: tuple[Controller, ...] = ()
+    stations: tuple[Station, ...] = ()
 
     @staticmethod
     def load(source: OpenDriveSource) -> OpenDriveMap:
