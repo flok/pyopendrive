@@ -63,7 +63,9 @@ implementation and the project's architecture documented in
 10. Parse junctions and lane connections — **implemented with validation limits**; connections, lane links, virtual endpoints, crossing road sections, groups, cross paths, reference-line geometry, boundary segments, elevation grids, and CRG metadata are parsed. Optional checks cover selected type rules and road, junction, controller, and lane IDs. Lane-position and geometric connectivity checks, CRG decoding, and verification of 1.9.0 type-rule applicability remain open.
 11. Parse signals and controllers — **partial**; signals, references, lane validity, dependencies, links, and static controller mappings are implemented. Signal semantics and alternate position records remain unsupported.
 12. Parse road objects and object references — **partial**; object attributes, references, road/local outline corners, smooth outline curves, and markings are implemented. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported.
-13. Parse supplementary network elements.
+13. Parse supplementary network elements — partial; junction groups, railway
+    stations/platform segments, and road CRG references are parsed. Switches,
+    additional rail metadata, and CRG payload evaluation remain unsupported.
 14. Preserve and report user-defined extensions.
 15. Resolve included OpenDRIVE files.
 16. Read gzip-compressed `.xodrz` files.

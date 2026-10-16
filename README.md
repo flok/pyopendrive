@@ -7,7 +7,8 @@ PyOpenDrive is a Python library for reading ASAM OpenDRIVE road network files.
 The parser reads the OpenDRIVE format revision, header metadata, road attributes
 and links, road types, plan-view geometry, elevation and lateral profiles,
 lane layers with supported lane properties, and selected junction, controller,
-signal, and object records. The models preserve source geometry parameters.
+signal, object, railway station/platform, and road-surface CRG records. The
+models preserve source geometry parameters.
 The loader does not evaluate curves or validate documents
 against the ASAM XSD schemas.
 

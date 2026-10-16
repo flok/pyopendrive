@@ -28,6 +28,7 @@ src/pyopendrive/
     │   ├── objects.py      # Road objects, outlines, and markings
     │   ├── opendrive.py    # Map, header, and format-revision models
     │   ├── profiles.py     # Elevation and lateral profile values
+    │   ├── railroads.py    # Stations, platforms, and track segments
     │   ├── road.py         # Road metadata and nested source records
     │   └── signals.py      # Signals, references, and shared lane validity
     └── parser/
@@ -77,6 +78,8 @@ CRG files are not opened. Unsupported network children and attributes produce
 diagnostics.
 Road-level CRG references are retained on each road, including the 1.9.0 global
 coordinate offsets; external CRG payloads are not loaded or evaluated.
+Static stations expose platforms and road-referenced platform segments; switch
+records and additional railway properties remain unsupported.
 Geometry values preserve source parameters; geometry
 calculation and coordinate transforms remain separate. The header contains
 major/minor revision only, so patch releases cannot be inferred.

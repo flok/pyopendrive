@@ -13,6 +13,8 @@ from pyopendrive.odr.models import (
     OpenDriveDiagnostic,
     OpenDriveMap,
     OpenDriveVersion,
+    Platform,
+    PlatformSegment,
     RegulationSemantic,
     Road,
     RoadCrg,
@@ -21,6 +23,7 @@ from pyopendrive.odr.models import (
     RoadSpeed,
     RoadType,
     SignalRegulation,
+    Station,
 )
 from pyopendrive.odr.models.geometry import GeometrySegment
 from pyopendrive.odr.parser.junctions import (
@@ -99,6 +102,15 @@ def parse(source: XmlSource) -> OpenDriveMap:
         )
     except JunctionParseError as error:
         raise OpenDriveParseError(error.message, element=error.element) from error
+    stations = (
+        tuple(
+            _parse_station(child)
+            for child in root
+            if _local_name(child.tag) == "station"
+        )
+        if format_version.minor >= 7
+        else ()
+    )
 
     diagnostics = _collect_diagnostics(
         root, header_element, road_elements, format_version.minor
@@ -111,6 +123,42 @@ def parse(source: XmlSource) -> OpenDriveMap:
         junctions=junctions,
         junction_groups=junction_groups,
         controllers=controllers,
+        stations=stations,
+    )
+
+
+def _parse_station(element: ElementTree.Element) -> Station:
+    path = f"/OpenDRIVE/station[@id='{element.get('id', '?')}']"
+    return Station(
+        id=_required_string(element, "id", path),
+        name=_required_string(element, "name", path),
+        type=element.get("type"),
+        platforms=tuple(
+            Platform(
+                id=_required_string(platform, "id", f"{path}/platform"),
+                name=platform.get("name"),
+                segments=tuple(
+                    PlatformSegment(
+                        road_id=_required_string(
+                            segment, "roadId", f"{path}/platform/segment"
+                        ),
+                        s_start=_required_float(
+                            segment, "sStart", f"{path}/platform/segment"
+                        ),
+                        s_end=_required_float(
+                            segment, "sEnd", f"{path}/platform/segment"
+                        ),
+                        side=_required_string(
+                            segment, "side", f"{path}/platform/segment"
+                        ),
+                    )
+                    for segment in platform
+                    if _local_name(segment.tag) == "segment"
+                ),
+            )
+            for platform in element
+            if _local_name(platform.tag) == "platform"
+        ),
     )
 
 
@@ -627,6 +675,31 @@ def _collect_diagnostics(
         if name in {"junction", "junctionGroup", "controller"}:
             path = f"/OpenDRIVE/{name}[@id='{child.get('id', '?')}']"
             _junction_diagnostics(child, path, diagnostics)
+        elif name == "station" and revision >= 7:
+            path = f"/OpenDRIVE/station[@id='{child.get('id', '?')}']"
+            _unsupported_attributes(child, {"id", "name", "type"}, path, diagnostics)
+            for platform in child:
+                platform_name = _local_name(platform.tag)
+                platform_path = f"{path}/{platform_name}"
+                if platform_name != "platform":
+                    _unsupported_element(platform, platform_path, diagnostics)
+                    continue
+                _unsupported_attributes(
+                    platform, {"id", "name"}, platform_path, diagnostics
+                )
+                for segment in platform:
+                    segment_name = _local_name(segment.tag)
+                    segment_path = f"{platform_path}/{segment_name}"
+                    if segment_name == "segment":
+                        _unsupported_attributes(
+                            segment,
+                            {"roadId", "sStart", "sEnd", "side"},
+                            segment_path,
+                            diagnostics,
+                        )
+                        _unsupported_children(segment, segment_path, diagnostics)
+                    else:
+                        _unsupported_element(segment, segment_path, diagnostics)
         elif name not in {"header", "road"}:
             _unsupported_element(child, f"/OpenDRIVE/{name}", diagnostics)
     return tuple(diagnostics)

@@ -58,7 +58,7 @@ claim that every detail has already been implemented.
 | Signals and lane validity | Partial | Supported | Parses signals/references, dependencies, signal links, lane validity, and temporary/invalidated source state. Signal semantics and alternate position records remain unsupported and are diagnosed. |
 | Road objects and object outlines/markings | Partial | Supported | Parses object/reference attributes, road/local outline corners, smooth line/arc/paramPoly3 curves, and object/outline markings. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported and are diagnosed. |
 | Road CRG surface references | Partial | Supported | Preserves road-level CRG references and offsets, including 1.9.0 global-mode x/y/heading offsets. Does not load or evaluate CRG files. |
-| Rail tracks, switches, tram, and stations | Planned | Supported | Static network elements only; not yet parsed. |
+| Rail tracks, switches, tram, and stations | Partial | Supported | Parses station/platform/segment records and rail lane types. Switches and supplementary railroad metadata remain unsupported and are diagnosed. |
 | `userData`, `include`, data quality, unknown extensions | Planned | Preserve or report | Preserve unknown extension payload where practical; include expansion is tracked separately. |
 | XSD and semantic validation | Not implemented | Optional | Not a mandatory runtime dependency; separate roadmap issue. |
 | Geometry evaluation, coordinate transforms, routing | Out of scope | Out of scope | Parsing geometry records does not promise derived positions or routing. |
