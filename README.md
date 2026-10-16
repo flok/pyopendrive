@@ -23,10 +23,29 @@ road_map = OpenDriveMap.load("map.xodr")
 print(road_map.format_version)
 for road in road_map.roads:
     print(road.id, road.length)
+    for segment in road.plan_view:
+        print(segment.s, segment.primitive)
+    for layer in road.lane_layers:
+        for section in layer.sections:
+            for side in ("left", "center", "right"):
+                for lane in getattr(section.lanes, side) or ():
+                    print(side, lane.id, lane.lane_type)
     for signal in road.signals:
         print(signal.id, signal.type, signal.subtype)
+    for road_object in road.objects:
+        print(road_object.id, road_object.type, road_object.s, road_object.t)
 for junction in road_map.junctions:
     print(junction.id, len(junction.connections))
+```
+
+The model preserves geometry parameters; `segment.primitive` identifies the
+source geometry but does not calculate coordinates. Signal and object lists may
+be empty when a road contains none. Unsupported but recoverable content is
+available as structured diagnostics:
+
+```python
+for diagnostic in road_map.diagnostics:
+    print(diagnostic.code, diagnostic.element, diagnostic.message)
 ```
 
 `OpenDriveMap.load` accepts filesystem paths and caller-owned text or binary
