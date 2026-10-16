@@ -10,6 +10,9 @@ implementation and the project's architecture documented in
 - Public entry point: `OpenDriveMap.load(source)`, exported from `pyopendrive`;
   it accepts `.xodr` paths, gzip-compressed `.xodrz` paths, and caller-owned
   streams. `OpenDrive.load` remains an alias.
+- Path-based inputs recursively resolve local includes in their XML parent
+  context. Gzip-compressed includes use the same `.xodrz` reader. Streams that
+  contain includes fail clearly because they have no base path.
 - `odr/api.py` is the loading facade. `odr/parser/xml.py` parses XML with the
   standard-library `ElementTree`; `odr/models/` contains data-only, immutable
   models. The parser and models remain separate.
@@ -66,9 +69,11 @@ implementation and the project's architecture documented in
 12. Parse road objects and object references — **partial**; object attributes, references, road/local outline corners, smooth outline curves, and markings are implemented. Repeats, skeletons, materials, parking spaces, borders, tunnels, and bridges remain unsupported.
 13. Parse supplementary network elements.
 14. Preserve and report user-defined extensions.
-15. Resolve included OpenDRIVE files.
-16. Read gzip-compressed `.xodrz` files — `.xodrz` path loading is implemented;
-    gzip-compressed includes remain part of issue #19.
+15. Resolve included OpenDRIVE files — implemented for path inputs, including
+    recursive includes, gzip-compressed files, cycle/missing-file errors, and
+    explicit stream and network-URL behavior.
+16. Read gzip-compressed `.xodrz` files — implemented for path inputs and
+    includes; invalid gzip streams report a distinct parse error.
 
 ### M4 — Compatibility and validation
 

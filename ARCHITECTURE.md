@@ -54,13 +54,16 @@ road_map = OpenDriveMap.load("map.xodr")
 1. `OpenDriveMap.load(source)` loads `.xodr` paths, gzip-compressed `.xodrz`
    paths, and caller-owned text or binary streams through `odr.parser.xml`;
    `OpenDrive.load` remains a compatibility alias.
-2. The XML parser uses `xml.etree.ElementTree` and converts XML to immutable,
+2. For path inputs, the XML parser recursively expands local includes in their
+   XML parent context before converting the document. Streams with includes
+   fail because no base directory is available; network URLs are not fetched.
+3. The XML parser uses `xml.etree.ElementTree` and converts XML to immutable,
    slotted models. Collections exposed by the map and its roads are tuples.
-3. `OpenDriveParseError` reports malformed XML or required structure and
+4. `OpenDriveParseError` reports malformed XML or required structure and
    attributes that cannot be parsed, with element context.
-4. The package root re-exports supported types so internal module paths can
+5. The package root re-exports supported types so internal module paths can
    change without changing ordinary imports.
-5. Recoverable unsupported content produces structured
+6. Recoverable unsupported content produces structured
    `OpenDriveDiagnostic` values on the map.
 
 The parser reads header metadata, road identity and links, road types, plan-view

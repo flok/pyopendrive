@@ -31,6 +31,9 @@ for junction in road_map.junctions:
 
 `OpenDriveMap.load` accepts `.xodr` paths, gzip-compressed `.xodrz` paths, and
 caller-owned text or binary streams. Caller-owned streams remain open.
+Local includes in path-based files are expanded recursively in their XML parent
+context. Includes in caller-owned streams fail with a clear error because no
+base directory is available. Network URLs are not fetched.
 `OpenDrive` remains available as a compatibility alias. Successful parsing
 reads supported fields but does not imply complete XSD or semantic validation.
 Recoverable unsupported content is reported through structured values in
